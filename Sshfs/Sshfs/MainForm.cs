@@ -311,6 +311,15 @@ namespace Sshfs
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
+                
+                if (String.IsNullOrEmpty(drive.Passphrase) && String.IsNullOrEmpty(drive.Password) )
+                {
+                    save_passwords_checkbox.Checked = false;
+                }
+                else
+                {
+                    save_passwords_checkbox.Checked = true;
+                }
             }
         }
 
