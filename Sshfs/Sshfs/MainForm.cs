@@ -144,13 +144,24 @@ namespace Sshfs
                 Debug.WriteLine("FormCOveride");
                 if (_dirty)
                 {
+                    // Check if passwords are to be saved.
+                    // If they are - just save the entire _drives List.
                     if (save_passwords_checkbox.Checked)
                     {
                         _drives.Presist("config.xml");
                     }
                     else
                     {
+                        // No passwords to be saved. Create a new temporary list
+                        // with the contents of _drives. Then iterate through and
+                        // remove passwords and passphrases.
+                        // Save the temporary list instead.
                         var _tmp_drives = new List<SftpDrive>(_drives);
+                        foreach (SftpDrive _drive in _tmp_drives)
+                        {
+                            _drive.Passphrase = "";
+                            _drive.Password = "";
+                        }
                         _tmp_drives.Presist("config.xml");
                     }
                 }
