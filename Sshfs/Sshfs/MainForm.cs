@@ -144,7 +144,15 @@ namespace Sshfs
                 Debug.WriteLine("FormCOveride");
                 if (_dirty)
                 {
-                    _drives.Presist("config.xml");
+                    if (save_passwords_checkbox.Checked)
+                    {
+                        _drives.Presist("config.xml");
+                    }
+                    else
+                    {
+                        var _tmp_drives = new List<SftpDrive>(_drives);
+                        _tmp_drives.Presist("config.xml");
+                    }
                 }
                 notifyIcon.Visible = false;
             }

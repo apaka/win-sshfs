@@ -74,6 +74,7 @@
             this.startupMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.save_passwords_checkbox = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.fieldsPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.portBox)).BeginInit();
@@ -100,7 +101,7 @@
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 85.99348F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.00651F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(528, 328);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(528, 371);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // fieldsPanel
@@ -108,7 +109,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 30.60498F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 69.39502F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 16F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 17F));
             this.fieldsPanel.Controls.Add(this.nameBox, 1, 0);
             this.fieldsPanel.Controls.Add(this.label1, 0, 0);
             this.fieldsPanel.Controls.Add(this.hostBox, 1, 1);
@@ -125,6 +126,7 @@
             this.fieldsPanel.Controls.Add(this.label7, 0, 6);
             this.fieldsPanel.Controls.Add(this.panel2, 1, 5);
             this.fieldsPanel.Controls.Add(this.authLabel, 0, 5);
+            this.fieldsPanel.Controls.Add(this.save_passwords_checkbox, 1, 8);
             this.fieldsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fieldsPanel.Location = new System.Drawing.Point(229, 5);
             this.fieldsPanel.Name = "fieldsPanel";
@@ -141,14 +143,14 @@
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.fieldsPanel.Size = new System.Drawing.Size(296, 274);
+            this.fieldsPanel.Size = new System.Drawing.Size(296, 311);
             this.fieldsPanel.TabIndex = 3;
             // 
             // nameBox
             // 
             this.nameBox.Location = new System.Drawing.Point(88, 3);
             this.nameBox.Name = "nameBox";
-            this.nameBox.Size = new System.Drawing.Size(188, 20);
+            this.nameBox.Size = new System.Drawing.Size(187, 20);
             this.nameBox.TabIndex = 0;
             this.nameBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -167,7 +169,7 @@
             // 
             this.hostBox.Location = new System.Drawing.Point(88, 32);
             this.hostBox.Name = "hostBox";
-            this.hostBox.Size = new System.Drawing.Size(188, 20);
+            this.hostBox.Size = new System.Drawing.Size(187, 20);
             this.hostBox.TabIndex = 1;
             this.hostBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -215,7 +217,7 @@
             // 
             this.userBox.Location = new System.Drawing.Point(88, 90);
             this.userBox.Name = "userBox";
-            this.userBox.Size = new System.Drawing.Size(188, 20);
+            this.userBox.Size = new System.Drawing.Size(187, 20);
             this.userBox.TabIndex = 3;
             this.userBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -293,7 +295,7 @@
             "/"});
             this.directoryBox.Location = new System.Drawing.Point(88, 211);
             this.directoryBox.Name = "directoryBox";
-            this.directoryBox.Size = new System.Drawing.Size(188, 21);
+            this.directoryBox.Size = new System.Drawing.Size(187, 21);
             this.directoryBox.TabIndex = 8;
             // 
             // label7
@@ -315,7 +317,7 @@
             this.panel2.Controls.Add(this.passwordBox);
             this.panel2.Location = new System.Drawing.Point(88, 148);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(188, 57);
+            this.panel2.Size = new System.Drawing.Size(187, 57);
             this.panel2.TabIndex = 15;
             // 
             // passphraseBox
@@ -377,7 +379,7 @@
             this.driveListView.Location = new System.Drawing.Point(3, 5);
             this.driveListView.MultiSelect = false;
             this.driveListView.Name = "driveListView";
-            this.driveListView.Size = new System.Drawing.Size(220, 274);
+            this.driveListView.Size = new System.Drawing.Size(220, 311);
             this.driveListView.SmallImageList = this.imageList;
             this.driveListView.TabIndex = 0;
             this.driveListView.UseCompatibleStateImageBehavior = false;
@@ -407,7 +409,7 @@
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel2.Controls.Add(this.removeButton, 1, 0);
             this.tableLayoutPanel2.Controls.Add(this.addButton, 0, 0);
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 285);
+            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 322);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
             this.tableLayoutPanel2.RowCount = 1;
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
@@ -451,12 +453,12 @@
             this.buttonPanel.Controls.Add(this.muButton, 1, 0);
             this.buttonPanel.Controls.Add(this.saveButton, 1, 0);
             this.buttonPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.buttonPanel.Location = new System.Drawing.Point(229, 285);
+            this.buttonPanel.Location = new System.Drawing.Point(229, 322);
             this.buttonPanel.Name = "buttonPanel";
             this.buttonPanel.Padding = new System.Windows.Forms.Padding(0, 0, 15, 0);
             this.buttonPanel.RowCount = 1;
             this.buttonPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.buttonPanel.Size = new System.Drawing.Size(296, 40);
+            this.buttonPanel.Size = new System.Drawing.Size(296, 46);
             this.buttonPanel.TabIndex = 4;
             // 
             // muButton
@@ -464,9 +466,9 @@
             this.muButton.Dock = System.Windows.Forms.DockStyle.Fill;
             this.muButton.Image = global::Sshfs.Properties.Resources.mount;
             this.muButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.muButton.Location = new System.Drawing.Point(187, 3);
+            this.muButton.Location = new System.Drawing.Point(90, 3);
             this.muButton.Name = "muButton";
-            this.muButton.Size = new System.Drawing.Size(91, 34);
+            this.muButton.Size = new System.Drawing.Size(91, 40);
             this.muButton.TabIndex = 4;
             this.muButton.Text = "Mount";
             this.muButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -478,9 +480,9 @@
             this.saveButton.Dock = System.Windows.Forms.DockStyle.Fill;
             this.saveButton.Image = global::Sshfs.Properties.Resources.save;
             this.saveButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.saveButton.Location = new System.Drawing.Point(90, 3);
+            this.saveButton.Location = new System.Drawing.Point(187, 3);
             this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(91, 34);
+            this.saveButton.Size = new System.Drawing.Size(91, 40);
             this.saveButton.TabIndex = 3;
             this.saveButton.Text = "Save";
             this.saveButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -586,11 +588,21 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // save_passwords_checkbox
+            // 
+            this.save_passwords_checkbox.AutoSize = true;
+            this.save_passwords_checkbox.Location = new System.Drawing.Point(88, 267);
+            this.save_passwords_checkbox.Name = "save_passwords_checkbox";
+            this.save_passwords_checkbox.Size = new System.Drawing.Size(105, 17);
+            this.save_passwords_checkbox.TabIndex = 17;
+            this.save_passwords_checkbox.Text = "Save Passwords";
+            this.save_passwords_checkbox.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(528, 328);
+            this.ClientSize = new System.Drawing.Size(528, 371);
             this.Controls.Add(this.tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -662,6 +674,7 @@
         private System.Windows.Forms.ToolStripMenuItem mountMenuItem;
         private System.Windows.Forms.ToolStripMenuItem unmountMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.CheckBox save_passwords_checkbox;
 
 
 
