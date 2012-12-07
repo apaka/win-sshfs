@@ -316,7 +316,7 @@
             this.panel2.Location = new System.Drawing.Point(88, 148);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(188, 57);
-            this.panel2.TabIndex = 15;
+            this.panel2.TabIndex = 5;
             // 
             // passphraseBox
             // 
@@ -324,7 +324,7 @@
             this.passphraseBox.Name = "passphraseBox";
             this.passphraseBox.PasswordChar = '*';
             this.passphraseBox.Size = new System.Drawing.Size(160, 20);
-            this.passphraseBox.TabIndex = 6;
+            this.passphraseBox.TabIndex = 2;
             this.passphraseBox.Leave += new System.EventHandler(this.box_Leave);
             // 
             // privateKeyBox
@@ -332,7 +332,7 @@
             this.privateKeyBox.Location = new System.Drawing.Point(0, 0);
             this.privateKeyBox.Name = "privateKeyBox";
             this.privateKeyBox.Size = new System.Drawing.Size(160, 20);
-            this.privateKeyBox.TabIndex = 5;
+            this.privateKeyBox.TabIndex = 0;
             this.privateKeyBox.Leave += new System.EventHandler(this.box_Leave);
             // 
             // privateKeyButton
@@ -341,7 +341,7 @@
             this.privateKeyButton.Location = new System.Drawing.Point(162, -1);
             this.privateKeyButton.Name = "privateKeyButton";
             this.privateKeyButton.Size = new System.Drawing.Size(28, 21);
-            this.privateKeyButton.TabIndex = 2;
+            this.privateKeyButton.TabIndex = 1;
             this.privateKeyButton.Text = "...";
             this.privateKeyButton.UseVisualStyleBackColor = true;
             this.privateKeyButton.Click += new System.EventHandler(this.keyButton_Click);
@@ -467,7 +467,7 @@
             this.muButton.Location = new System.Drawing.Point(187, 3);
             this.muButton.Name = "muButton";
             this.muButton.Size = new System.Drawing.Size(91, 34);
-            this.muButton.TabIndex = 4;
+            this.muButton.TabIndex = 3;
             this.muButton.Text = "Mount";
             this.muButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.muButton.UseVisualStyleBackColor = true;
@@ -481,7 +481,7 @@
             this.saveButton.Location = new System.Drawing.Point(90, 3);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(91, 34);
-            this.saveButton.TabIndex = 3;
+            this.saveButton.TabIndex = 4;
             this.saveButton.Text = "Save";
             this.saveButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.saveButton.UseVisualStyleBackColor = true;
