@@ -161,8 +161,16 @@ namespace Sshfs
         {
             using (var cmd = new SshCommand(Session, "id -G ", Encoding.ASCII))
             {
-                cmd.Execute();
-                return cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
+                cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+                try
+                {
+                    cmd.Execute();
+                    return cmd.Result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
+                }
+                catch
+                {
+                    return new int[0];
+                }
             }
         }
 
@@ -171,8 +179,17 @@ namespace Sshfs
             using (var cmd = new SshCommand(Session, "id -u ", Encoding.ASCII))
                 // Thease commands seems to be POSIX so the only problem would be Windows enviroment
             {
-                cmd.Execute();
-                return cmd.ExitStatus == 0 ? Int32.Parse(cmd.Result) : -1;
+                //If the sftp server does not support SSH, we cannot execute the command
+                cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+                try
+                {
+                    cmd.Execute();
+                    return cmd.ExitStatus == 0 ? Int32.Parse(cmd.Result) : -1;
+                }
+                catch
+                {
+                    return -1;
+                }
             }
         }
 
@@ -903,8 +920,21 @@ namespace Sshfs
                     using (var cmd = new SshCommand(Session, String.Format(" df -Pk  {0}", _rootpath), Encoding.ASCII))
                         // POSIX standard df
                     {
-                        cmd.Execute();
-                        if (cmd.ExitStatus == 0)
+
+                        bool success = false;
+
+                        cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+
+                        try
+                        {
+                            cmd.Execute();
+                            success = cmd.ExitStatus == 0;
+                        }
+                        catch
+                        {
+                        }
+
+                        if (success)
                         {
                             var values = cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
 
