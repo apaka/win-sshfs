@@ -62,7 +62,7 @@ namespace Sshfs
         private readonly bool _useOfflineAttribute;
         private readonly bool _debugMode;
 
-
+        private bool _noSSHCommands = false;
         private int _userId;
         private HashSet<int> _userGroups;
 
@@ -159,21 +159,59 @@ namespace Sshfs
 
         private IEnumerable<int> GetUserGroupsIds()
         {
-            using (var cmd = new SshCommand(Session, "id -G ", Encoding.ASCII))
+            if (!_noSSHCommands)
             {
-                cmd.Execute();
-                return cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
+                using (var cmd = new SshCommand(Session, "id -G ", Encoding.ASCII))
+                {
+                    cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+                    try
+                    {
+                        {
+                            cmd.Execute();
+                            return cmd.Result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
+                        }
+                    }
+                    catch
+                    {
+                        _noSSHCommands = true;
+                    }
+                }
             }
+
+            var r = _sftpSession.RequestStat(".", true);
+            if (r != null)
+                return new int[] { r.GroupId };
+
+            return new int[0];
+
         }
 
         private int GetUserId()
         {
-            using (var cmd = new SshCommand(Session, "id -u ", Encoding.ASCII))
-                // Thease commands seems to be POSIX so the only problem would be Windows enviroment
+            if (!_noSSHCommands)
             {
-                cmd.Execute();
-                return cmd.ExitStatus == 0 ? Int32.Parse(cmd.Result) : -1;
+                using (var cmd = new SshCommand(Session, "id -u ", Encoding.ASCII))
+                // Thease commands seems to be POSIX so the only problem would be Windows enviroment
+                {
+                    cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+                    try
+                    {
+                        cmd.Execute();
+                        if (cmd.ExitStatus == 0)
+                        	return Int32.Parse(cmd.Result);
+                    }
+                    catch
+                    {
+                        _noSSHCommands = true;
+                    }
+                }
             }
+
+            var r = _sftpSession.RequestStat(".", true);
+            if (r != null)
+                return r.UserId;
+
+            return -1;
         }
 
         private bool UserCanRead(SftpFileAttributes attributes)
@@ -892,33 +930,45 @@ namespace Sshfs
             }
             else
             {
+
                 if (_supportsStatVfs)
                 {
                     var information = _sftpSession.RequestStatVfs(_rootpath, true);
-                    total = (long) (information.TotalBlocks*information.BlockSize);
-                    free = (long) (information.FreeBlocks*information.BlockSize);
-                    used = (long) (information.AvailableBlocks*information.BlockSize);
+                    total = (long)(information.TotalBlocks * information.BlockSize);
+                    free = (long)(information.FreeBlocks * information.BlockSize);
+                    used = (long)(information.AvailableBlocks * information.BlockSize);
                 }
                 else
-                    using (var cmd = new SshCommand(Session, String.Format(" df -Pk  {0}", _rootpath), Encoding.ASCII))
-                        // POSIX standard df
-                    {
-                        cmd.Execute();
-                        if (cmd.ExitStatus == 0)
-                        {
-                            var values = cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+                {
+                    total = 0x1900000000; //100 GiB
+                    used = 0xc80000000; // 50 Gib
+                    free = 0xc80000000;
 
-                            total = Int64.Parse(values[values.Length - 5]) << 10;
-                            used = Int64.Parse(values[values.Length - 4]) << 10;
-                            free = Int64.Parse(values[values.Length - 3]) << 10; //<======maybe to cache all this
-                        }
-                        else
+                    if (!_noSSHCommands)
+                    {
+                        using (var cmd = new SshCommand(Session, String.Format(" df -Pk  {0}", _rootpath), Encoding.ASCII))
+                        // POSIX standard df
                         {
-                            total = 0x1900000000; //100 GiB
-                            used = 0xc80000000; // 50 Gib
-                            free = 0xc80000000;
+                            cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+
+                            try
+                            {
+                                cmd.Execute();
+                                if (cmd.ExitStatus == 0)
+                                {
+                                    var values = cmd.Result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                    total = Int64.Parse(values[values.Length - 5]) << 10;
+                                    used = Int64.Parse(values[values.Length - 4]) << 10;
+                                    free = Int64.Parse(values[values.Length - 3]) << 10; //<======maybe to cache all this
+                                }
+                            }
+                            catch
+                            {
+                            }
                         }
                     }
+                }
 
                 _cache.Add(_volumeLabel, new Tuple<long, long, long>(free, total, used),
                            DateTimeOffset.UtcNow.AddMinutes(3));
