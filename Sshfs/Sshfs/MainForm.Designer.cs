@@ -108,7 +108,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 30.60498F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 69.39502F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 16F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 17F));
             this.fieldsPanel.Controls.Add(this.nameBox, 1, 0);
             this.fieldsPanel.Controls.Add(this.label1, 0, 0);
             this.fieldsPanel.Controls.Add(this.hostBox, 1, 1);
@@ -148,7 +148,7 @@
             // 
             this.nameBox.Location = new System.Drawing.Point(88, 3);
             this.nameBox.Name = "nameBox";
-            this.nameBox.Size = new System.Drawing.Size(188, 20);
+            this.nameBox.Size = new System.Drawing.Size(187, 20);
             this.nameBox.TabIndex = 0;
             this.nameBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -167,7 +167,7 @@
             // 
             this.hostBox.Location = new System.Drawing.Point(88, 32);
             this.hostBox.Name = "hostBox";
-            this.hostBox.Size = new System.Drawing.Size(188, 20);
+            this.hostBox.Size = new System.Drawing.Size(187, 20);
             this.hostBox.TabIndex = 1;
             this.hostBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -215,7 +215,7 @@
             // 
             this.userBox.Location = new System.Drawing.Point(88, 90);
             this.userBox.Name = "userBox";
-            this.userBox.Size = new System.Drawing.Size(188, 20);
+            this.userBox.Size = new System.Drawing.Size(187, 20);
             this.userBox.TabIndex = 3;
             this.userBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -225,7 +225,8 @@
             this.authCombo.FormattingEnabled = true;
             this.authCombo.Items.AddRange(new object[] {
             "Password",
-            "PrivateKey"});
+            "PrivateKey",
+            "Pageant"});
             this.authCombo.Location = new System.Drawing.Point(88, 119);
             this.authCombo.Name = "authCombo";
             this.authCombo.Size = new System.Drawing.Size(121, 21);
@@ -293,7 +294,7 @@
             "/"});
             this.directoryBox.Location = new System.Drawing.Point(88, 211);
             this.directoryBox.Name = "directoryBox";
-            this.directoryBox.Size = new System.Drawing.Size(188, 21);
+            this.directoryBox.Size = new System.Drawing.Size(187, 21);
             this.directoryBox.TabIndex = 8;
             // 
             // label7
@@ -315,7 +316,7 @@
             this.panel2.Controls.Add(this.passwordBox);
             this.panel2.Location = new System.Drawing.Point(88, 148);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(188, 57);
+            this.panel2.Size = new System.Drawing.Size(187, 57);
             this.panel2.TabIndex = 15;
             // 
             // passphraseBox

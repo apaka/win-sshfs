@@ -4,5 +4,6 @@ namespace Sshfs
     {
         Password = 0x0,
         PrivateKey = 0x1,
+        Pageant = 0x2,
     }
 }
