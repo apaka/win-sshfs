@@ -321,7 +321,7 @@ namespace Sshfs
 
                 if (count >= WRITE_BUFFER_SIZE)
                 {
-                    _session.RequestWrite(_handle, (ulong) _position, buffer);
+                    _session.RequestWrite(_handle, (ulong) _position, buffer, null,null);
                 }
                 else
                 {
@@ -340,7 +340,7 @@ namespace Sshfs
             if (_writeBufferPosition == WRITE_BUFFER_SIZE)
             {
                 
-                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer);
+                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer, null,null);
                 
 
                 _writeBufferPosition = 0;
@@ -378,7 +378,7 @@ namespace Sshfs
 
 
                
-                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data);
+                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data, null,null);
                 
 
                 _writeBufferPosition = 0;

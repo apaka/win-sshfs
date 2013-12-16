@@ -99,7 +99,7 @@ namespace Sshfs
         {
             base.OnConnected();
 
-            _sftpSession = new SftpSession(Session, _operationTimeout);
+            _sftpSession = new SftpSession(Session, _operationTimeout, Encoding.UTF8);
 
 
             _sftpSession.Connect();
@@ -116,9 +116,9 @@ namespace Sshfs
             }
 
             _supportsPosixRename =
-                _sftpSession.Extentions.Contains(new KeyValuePair<string, string>("posix-rename@openssh.com", "1"));
+                _sftpSession._supportedExtensions.Contains(new KeyValuePair<string, string>("posix-rename@openssh.com", "1"));
             _supportsStatVfs =
-                _sftpSession.Extentions.Contains(new KeyValuePair<string, string>("statvfs@openssh.com", "2"));
+                _sftpSession._supportedExtensions.Contains(new KeyValuePair<string, string>("statvfs@openssh.com", "2"));
             // KeepAliveInterval=TimeSpan.FromSeconds(5);
 
            //  Session.Disconnected+= (sender, args) => Debugger.Break();
@@ -159,7 +159,7 @@ namespace Sshfs
 
         private IEnumerable<int> GetUserGroupsIds()
         {
-            using (var cmd = new SshCommand(Session, "id -G ", Encoding.ASCII))
+            using (var cmd = new SshCommand(Session, "id -G "))
             {
                 cmd.Execute();
                 return cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
@@ -168,7 +168,7 @@ namespace Sshfs
 
         private int GetUserId()
         {
-            using (var cmd = new SshCommand(Session, "id -u ", Encoding.ASCII))
+            using (var cmd = new SshCommand(Session, "id -u "))
                 // Thease commands seems to be POSIX so the only problem would be Windows enviroment
             {
                 cmd.Execute();
@@ -323,6 +323,7 @@ namespace Sshfs
 
             if (sftpFileAttributes != null && sftpFileAttributes.IsDirectory)
             {
+                //???
                 if (!UserCanExecute(sftpFileAttributes) || !UserCanRead(sftpFileAttributes))
                 {
                     return DokanError.ErrorAccessDenied;
@@ -453,7 +454,7 @@ namespace Sshfs
                     var handle = _sftpSession.RequestOpen(GetUnixPath(fileName), Flags.Write);
                  //   using (var wait = new AutoResetEvent(false))
                     {
-                        _sftpSession.RequestWrite(handle, (ulong) offset, buffer/*, wait*/);
+                        _sftpSession.RequestWrite(handle, (ulong) offset, buffer, null,null/*, wait*/);
                     }
                     _sftpSession.RequestClose(handle);
                     bytesWritten = buffer.Length;
@@ -900,7 +901,7 @@ namespace Sshfs
                     used = (long) (information.AvailableBlocks*information.BlockSize);
                 }
                 else
-                    using (var cmd = new SshCommand(Session, String.Format(" df -Pk  {0}", _rootpath), Encoding.ASCII))
+                    using (var cmd = new SshCommand(Session, String.Format(" df -Pk  {0}", _rootpath)))
                         // POSIX standard df
                     {
                         cmd.Execute();

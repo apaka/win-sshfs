@@ -51,6 +51,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Threading;
+using System.Security.Cryptography;
 
 /*
 Optimization
@@ -69,6 +70,8 @@ namespace Renci.SshNet.Common
     /// </summary>
     public struct BigInteger : IComparable, IFormattable, IComparable<BigInteger>, IEquatable<BigInteger>
     {
+        private static RNGCryptoServiceProvider _randomizer = new System.Security.Cryptography.RNGCryptoServiceProvider();
+
         private const ulong _BASE = 0x100000000;
         private const Int32 _DECIMALSIGNMASK = unchecked((Int32)0x80000000);
         private const int _BIAS = 1075;
@@ -1961,6 +1964,19 @@ namespace Renci.SshNet.Common
         }
 
         /// <summary>
+        /// Generates random BigInteger number
+        /// </summary>
+        /// <param name="bitLength">Length of random number in bits.</param>
+        /// <returns>Big random number.</returns>
+        public static BigInteger Random(int bitLength)
+        {
+            var bytesArray = new byte[bitLength / 8 + (((bitLength % 8) > 0) ? 1 : 0)];
+            _randomizer.GetBytes(bytesArray);
+            bytesArray[bytesArray.Length - 1] = (byte)(bytesArray[bytesArray.Length - 1] & 0x7F);   //  Ensure not a negative value
+            return new BigInteger(bytesArray.ToArray());
+        }
+
+        /// <summary>
         /// Divides one System.Numerics.BigInteger value by another and returns the result.
         /// </summary>
         /// <param name="dividend">The value to be divided.</param>
@@ -2312,7 +2328,7 @@ namespace Renci.SshNet.Common
         /// </summary>
         /// <param name="bi">The bi.</param>
         /// <param name="modulus">The modulus.</param>
-        /// <returns></returns>
+        /// <returns>Modulus inverted number.</returns>
         public static BigInteger ModInverse(BigInteger bi, BigInteger modulus)
         {
             BigInteger a = modulus, b = bi % modulus;
@@ -2383,7 +2399,7 @@ namespace Renci.SshNet.Common
         /// <param name="value">A string that contains a number to convert.</param>
         /// <param name="style">A bitwise combination of the enumeration values that specify the permitted format of value.</param>
         /// <param name="provider">An object that provides culture-specific formatting information about value.</param>
-        /// <returns></returns>
+        /// <returns>Parsed <see cref="BigInteger"/> number</returns>
         public static BigInteger Parse(string value, System.Globalization.NumberStyles style, IFormatProvider provider)
         {
             Exception ex;

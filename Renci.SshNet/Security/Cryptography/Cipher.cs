@@ -11,17 +11,25 @@ namespace Renci.SshNet.Security.Cryptography
     public abstract class Cipher
     {
         /// <summary>
+        /// Gets the minimum data size.
+        /// </summary>
+        /// <value>
+        /// The minimum data size.
+        /// </value>
+        public abstract byte MinimumSize { get; }
+
+        /// <summary>
         /// Encrypts the specified input.
         /// </summary>
         /// <param name="input">The input.</param>
-        /// <returns></returns>
+        /// <returns>Encrypted data.</returns>
         public abstract byte[] Encrypt(byte[] input);
 
         /// <summary>
         /// Decrypts the specified input.
         /// </summary>
         /// <param name="input">The input.</param>
-        /// <returns></returns>
+        /// <returns>Decrypted data.</returns>
         public abstract byte[] Decrypt(byte[] input);
 
         #region Packing functions
@@ -57,7 +65,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// Converts big endian bytes into number.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="Int32" />.</returns>
         protected static uint BigEndianToUInt32(byte[] buffer)
         {
             uint n = (uint)buffer[0] << 24;
@@ -72,7 +80,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The buffer offset.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt32" />.</returns>
         protected static uint BigEndianToUInt32(byte[] buffer, int offset)
         {
             uint n = (uint)buffer[offset] << 24;
@@ -86,7 +94,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// Converts big endian bytes into number.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt64" />.</returns>
         protected static ulong BigEndianToUInt64(byte[] buffer)
         {
             uint hi = BigEndianToUInt32(buffer);
@@ -99,7 +107,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The buffer offset.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt64" />.</returns>
         protected static ulong BigEndianToUInt64(byte[] buffer, int offset)
         {
             uint hi = BigEndianToUInt32(buffer, offset);
@@ -161,7 +169,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// Converts little endian bytes into number.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt32" />.</returns>
         protected static uint LittleEndianToUInt32(byte[] buffer)
         {
             uint n = (uint)buffer[0];
@@ -176,7 +184,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The buffer offset.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="Int32" />.</returns>
         protected static uint LittleEndianToUInt32(byte[] buffer, int offset)
         {
             uint n = (uint)buffer[offset];
@@ -190,7 +198,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// Converts little endian bytes into number.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt64" />.</returns>
         protected static ulong LittleEndianToUInt64(byte[] buffer)
         {
             uint lo = LittleEndianToUInt32(buffer);
@@ -203,7 +211,7 @@ namespace Renci.SshNet.Security.Cryptography
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The buffer offset.</param>
-        /// <returns></returns>
+        /// <returns>Converted <see cref="UInt64" />.</returns>
         protected static ulong LittleEndianToUInt64(byte[] buffer, int offset)
         {
             uint lo = LittleEndianToUInt32(buffer, offset);

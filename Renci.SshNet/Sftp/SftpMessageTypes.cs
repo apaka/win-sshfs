@@ -1,7 +1,7 @@
 ﻿
 namespace Renci.SshNet.Sftp
 {
-    internal enum SftpMessageTypes : byte
+    public enum SftpMessageTypes : byte
     {
         /// <summary>
         /// SSH_FXP_INIT
@@ -83,6 +83,19 @@ namespace Renci.SshNet.Sftp
         /// SSH_FXP_SYMLINK
         /// </summary>
         SymLink = 20,
+        /// <summary>
+        /// SSH_FXP_LINK
+        /// </summary>
+        Link = 21,
+        /// <summary>
+        /// SSH_FXP_BLOCK
+        /// </summary>
+        Block = 22,
+        /// <summary>
+        /// SSH_FXP_UNBLOCK
+        /// </summary>
+        Unblock = 23,
+
         /// <summary>
         /// SSH_FXP_STATUS
         /// </summary>

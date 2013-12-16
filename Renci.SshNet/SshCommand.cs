@@ -17,8 +17,6 @@ namespace Renci.SshNet
     /// </summary>
     public partial class SshCommand : IDisposable
     {
-        private Encoding _encoding;
-
         private Session _session;
 
         private ChannelSession _channel;
@@ -46,27 +44,42 @@ namespace Renci.SshNet
         /// <value>
         /// The command timeout.
         /// </value>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute CommandTimeout" language="C#" title="Specify command execution timeout" />
+        /// </example>
         public TimeSpan CommandTimeout { get; set; }
 
         /// <summary>
         /// Gets the command exit status.
         /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand RunCommand ExitStatus" language="C#" title="Get command execution exit status" />
+        /// </example>
         public int ExitStatus { get; private set; }
 
         /// <summary>
         /// Gets the output stream.
         /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute OutputStream" language="C#" title="Use OutputStream to get command execution output" />
+        /// </example>
         public Stream OutputStream { get; private set; }
 
         /// <summary>
         /// Gets the extended output stream.
         /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute ExtendedOutputStream" language="C#" title="Use ExtendedOutputStream to get command debug execution output" />
+        /// </example>
         public Stream ExtendedOutputStream { get; private set; }
 
         private StringBuilder _result;
         /// <summary>
         /// Gets the command execution result.
         /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand RunCommand Result" language="C#" title="Running simple command" />
+        /// </example>
         public string Result
         {
             get
@@ -78,7 +91,7 @@ namespace Renci.SshNet
 
                 if (this.OutputStream != null && this.OutputStream.Length > 0)
                 {
-                    using (var sr = new StreamReader(this.OutputStream, this._encoding))
+                    using (var sr = new StreamReader(this.OutputStream, this._session.ConnectionInfo.Encoding))
                     {
                         this._result.Append(sr.ReadToEnd());
                     }
@@ -92,6 +105,9 @@ namespace Renci.SshNet
         /// <summary>
         /// Gets the command execution error.
         /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Error" language="C#" title="Display command execution error" />
+        /// </example>
         public string Error
         {
             get
@@ -105,7 +121,7 @@ namespace Renci.SshNet
 
                     if (this.ExtendedOutputStream != null && this.ExtendedOutputStream.Length > 0)
                     {
-                        using (var sr = new StreamReader(this.ExtendedOutputStream, this._encoding))
+                        using (var sr = new StreamReader(this.ExtendedOutputStream, this._session.ConnectionInfo.Encoding))
                         {
                             this._error.Append(sr.ReadToEnd());
                         }
@@ -124,12 +140,15 @@ namespace Renci.SshNet
         /// <param name="session">The session.</param>
         /// <param name="commandText">The command text.</param>
         /// <param name="encoding">The encoding.</param>
-        public SshCommand(Session session, string commandText, Encoding encoding)
+        /// <exception cref="ArgumentNullException">Either <paramref name="session"/>, <paramref name="commandText"/> or <paramref name="encoding"/> is null.</exception>
+        public SshCommand(Session session, string commandText)
         {
             if (session == null)
                 throw new ArgumentNullException("session");
 
-            this._encoding = encoding;
+            if (commandText == null)
+                throw new ArgumentNullException("commandText");
+
             this._session = session;
             this.CommandText = commandText;
             this.CommandTimeout = new TimeSpan(0, 0, 0, 0, -1);
@@ -141,13 +160,57 @@ namespace Renci.SshNet
         /// <summary>
         /// Begins an asynchronous command execution.
         /// </summary>
-        /// <param name="callback">An optional asynchronous callback, to be called when the command execution is complete.</param>
-        /// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
-        /// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous command execution, which could still be pending.</returns>
+        /// <returns>
+        /// An <see cref="System.IAsyncResult" /> that represents the asynchronous command execution, which could still be pending.
+        /// </returns>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand BeginExecute IsCompleted EndExecute" language="C#" title="Asynchronous Command Execution" />
+        /// </example>
+        /// <exception cref="System.InvalidOperationException">Asynchronous operation is already in progress.</exception>
+        /// <exception cref="SshException">Invalid operation.</exception>
+        /// <exception cref="System.ArgumentException">CommandText property is empty.</exception>
         /// <exception cref="Renci.SshNet.Common.SshConnectionException">Client is not connected.</exception>
         /// <exception cref="Renci.SshNet.Common.SshOperationTimeoutException">Operation has timed out.</exception>
         /// <exception cref="InvalidOperationException">Asynchronous operation is already in progress.</exception>
+        /// <exception cref="ArgumentException">CommandText property is empty.</exception>
+        public IAsyncResult BeginExecute()
+        {
+            return this.BeginExecute(null, null);
+        }
+
+        /// <summary>
+        /// Begins an asynchronous command execution.
+        /// </summary>
+        /// <param name="callback">An optional asynchronous callback, to be called when the command execution is complete.</param>
+        /// <returns>
+        /// An <see cref="System.IAsyncResult" /> that represents the asynchronous command execution, which could still be pending.
+        /// </returns>
+        /// <exception cref="System.InvalidOperationException">Asynchronous operation is already in progress.</exception>
         /// <exception cref="SshException">Invalid operation.</exception>
+        /// <exception cref="System.ArgumentException">CommandText property is empty.</exception>
+        /// <exception cref="Renci.SshNet.Common.SshConnectionException">Client is not connected.</exception>
+        /// <exception cref="Renci.SshNet.Common.SshOperationTimeoutException">Operation has timed out.</exception>
+        /// <exception cref="InvalidOperationException">Asynchronous operation is already in progress.</exception>
+        /// <exception cref="ArgumentException">CommandText property is empty.</exception>
+        public IAsyncResult BeginExecute(AsyncCallback callback)
+        {
+            return this.BeginExecute(callback, null);
+        }
+
+        /// <summary>
+        /// Begins an asynchronous command execution.
+        /// </summary>
+        /// <param name="callback">An optional asynchronous callback, to be called when the command execution is complete.</param>
+        /// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
+        /// <returns>
+        /// An <see cref="System.IAsyncResult" /> that represents the asynchronous command execution, which could still be pending.
+        /// </returns>
+        /// <exception cref="System.InvalidOperationException">Asynchronous operation is already in progress.</exception>
+        /// <exception cref="SshException">Invalid operation.</exception>
+        /// <exception cref="System.ArgumentException">CommandText property is empty.</exception>
+        /// <exception cref="Renci.SshNet.Common.SshConnectionException">Client is not connected.</exception>
+        /// <exception cref="Renci.SshNet.Common.SshOperationTimeoutException">Operation has timed out.</exception>
+        /// <exception cref="InvalidOperationException">Asynchronous operation is already in progress.</exception>
         /// <exception cref="ArgumentException">CommandText property is empty.</exception>
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
@@ -165,7 +228,7 @@ namespace Renci.SshNet
                 AsyncState = state,
             };
 
-                        //  When command re-executed again, create a new channel
+            //  When command re-executed again, create a new channel
             if (this._channel != null)
             {
                 throw new SshException("Invalid operation.");
@@ -187,17 +250,20 @@ namespace Renci.SshNet
         }
 
         /// <summary>
-        /// Begins an asynchronous command execution.
+        /// Begins an asynchronous command execution. 22
         /// </summary>
         /// <param name="commandText">The command text.</param>
         /// <param name="callback">An optional asynchronous callback, to be called when the command execution is complete.</param>
         /// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
-        /// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous command execution, which could still be pending.</returns>
+        /// <returns>
+        /// An <see cref="System.IAsyncResult" /> that represents the asynchronous command execution, which could still be pending.
+        /// </returns>
         /// <exception cref="Renci.SshNet.Common.SshConnectionException">Client is not connected.</exception>
         /// <exception cref="Renci.SshNet.Common.SshOperationTimeoutException">Operation has timed out.</exception>
         public IAsyncResult BeginExecute(string commandText, AsyncCallback callback, object state)
         {
             this.CommandText = commandText;
+
             return BeginExecute(callback, state);
         }
 
@@ -205,7 +271,11 @@ namespace Renci.SshNet
         /// Waits for the pending asynchronous command execution to complete.
         /// </summary>
         /// <param name="asyncResult">The reference to the pending asynchronous request to finish.</param>
-        /// <returns></returns>
+        /// <returns>Command execution result.</returns>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand BeginExecute IsCompleted EndExecute" language="C#" title="Asynchronous Command Execution" />
+        /// </example>
+        /// <exception cref="System.ArgumentException">Either the IAsyncResult object did not come from the corresponding async method on this type, or EndExecute was called multiple times with the same IAsyncResult.</exception>
         /// <exception cref="ArgumentException">Either the IAsyncResult object did not come from the corresponding async method on this type, or EndExecute was called multiple times with the same IAsyncResult.</exception>
         public string EndExecute(IAsyncResult asyncResult)
         {
@@ -218,7 +288,12 @@ namespace Renci.SshNet
                         //  Make sure that operation completed if not wait for it to finish
                         this.WaitHandle(this._asyncResult.AsyncWaitHandle);
 
-                        this._channel.Close();
+                        if (this._channel.IsOpen)
+                        {
+                            this._channel.SendEof();
+
+                            this._channel.Close();
+                        }
 
                         this._channel = null;
 
@@ -236,6 +311,11 @@ namespace Renci.SshNet
         /// Executes command specified by <see cref="CommandText"/> property.
         /// </summary>
         /// <returns>Command execution result</returns>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute" language="C#" title="Simple command execution" />
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Error" language="C#" title="Display command execution error" />
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute CommandTimeout" language="C#" title="Specify command execution timeout" />
+        /// </example>
         /// <exception cref="Renci.SshNet.Common.SshConnectionException">Client is not connected.</exception>
         /// <exception cref="Renci.SshNet.Common.SshOperationTimeoutException">Operation has timed out.</exception>
         public string Execute()
@@ -244,30 +324,15 @@ namespace Renci.SshNet
         }
 
         /// <summary>
-        /// Cancels command execution in asynchronous scenarios. CURRENTLY NOT IMPLEMENTED.
+        /// Cancels command execution in asynchronous scenarios. 
         /// </summary>
-        //public void Cancel()
-        //{
-        //    if (this._channel != null && this._channel.IsOpen)
-        //    {
-        //        //this._channel.SendData(Encoding.ASCII.GetBytes("~."));
-        //        this._channel.SendExecRequest("\0x03");
-
-        //        //this._channel.SendSignalRequest("ABRT");
-        //        //this._channel.SendSignalRequest("ALRM");
-        //        //this._channel.SendSignalRequest("FPE");
-        //        //this._channel.SendSignalRequest("HUP");
-        //        //this._channel.SendSignalRequest("ILL");
-        //        //this._channel.SendSignalRequest("INT");
-        //        //this._channel.SendSignalRequest("PIPE");
-        //        //this._channel.SendSignalRequest("QUIT");
-        //        //this._channel.SendSignalRequest("SEGV");
-        //        //this._channel.SendSignalRequest("TERM");
-        //        //this._channel.SendSignalRequest("SEGV");
-        //        //this._channel.SendSignalRequest("USR1");
-        //        //this._channel.SendSignalRequest("USR2");
-        //    }
-        //}
+        public void CancelAsync()
+        {
+            if (this._channel != null && this._channel.IsOpen && this._asyncResult != null)
+            {
+                this._channel.Close();
+            }
+        }
 
         /// <summary>
         /// Executes the specified command text.
@@ -279,6 +344,7 @@ namespace Renci.SshNet
         public string Execute(string commandText)
         {
             this.CommandText = commandText;
+
             return this.Execute();
         }
 
@@ -313,6 +379,10 @@ namespace Renci.SshNet
 
         private void Session_Disconnected(object sender, EventArgs e)
         {
+            //  If objected is disposed or being disposed don't handle this event
+            if (this._isDisposed)
+                return;
+
             this._exception = new SshConnectionException("An established connection was aborted by the software in your host machine.", DisconnectReason.ConnectionLost);
 
             this._sessionErrorOccuredWaitHandle.Set();
@@ -320,6 +390,10 @@ namespace Renci.SshNet
 
         private void Session_ErrorOccured(object sender, ExceptionEventArgs e)
         {
+            //  If objected is disposed or being disposed don't handle this event
+            if (this._isDisposed)
+                return;
+
             this._exception = e.Exception;
 
             this._sessionErrorOccuredWaitHandle.Set();
@@ -385,7 +459,6 @@ namespace Renci.SshNet
             if (this.OutputStream != null)
             {
                 this.OutputStream.Write(e.Data, 0, e.Data.Length);
-                //this._outputSteamWriter.Write(this._encoding.GetString(e.Data, 0, e.Data.Length));
                 this.OutputStream.Flush();
             }
 
@@ -408,19 +481,17 @@ namespace Renci.SshNet
                     waitHandle,
                 };
 
-            var index = EventWaitHandle.WaitAny(waitHandles, this.CommandTimeout);
-
-            if (index < 1)
+            switch (EventWaitHandle.WaitAny(waitHandles, this.CommandTimeout))
             {
-                throw this._exception;
-            }
-            else if (index > 1)
-            {
-                //  throw time out error
-                throw new SshOperationTimeoutException(string.Format(CultureInfo.CurrentCulture, "Command '{0}' has timed out.", this.CommandText));
+                case 0:
+                    throw this._exception;
+                case System.Threading.WaitHandle.WaitTimeout:
+                    throw new SshOperationTimeoutException(string.Format(CultureInfo.CurrentCulture, "Command '{0}' has timed out.", this.CommandText));
+                default:
+                    break;
             }
         }
-        
+
         partial void ExecuteThread(Action action);
 
         #region IDisposable Members

@@ -67,6 +67,20 @@ namespace Renci.SshNet.Security
             }
         }
 
+        /// <summary>
+        /// Gets the length of the key.
+        /// </summary>
+        /// <value>
+        /// The length of the key.
+        /// </value>
+        public override int KeyLength
+        {
+            get
+            {
+                return this.P.BitLength;
+            }
+        }
+
         private DsaDigitalSignature _digitalSignature;
         /// <summary>
         /// Gets the digital signature.
@@ -99,7 +113,7 @@ namespace Renci.SshNet.Security
             {
                 if (value.Length != 4)
                     throw new InvalidOperationException("Invalid public key.");
-                
+
                 this._privateKey = value;
             }
         }
@@ -123,7 +137,25 @@ namespace Renci.SshNet.Security
             if (this._privateKey.Length != 5)
                 throw new InvalidOperationException("Invalid private key.");
         }
-            
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DsaKey" /> class.
+        /// </summary>
+        /// <param name="p">The p.</param>
+        /// <param name="q">The q.</param>
+        /// <param name="g">The g.</param>
+        /// <param name="y">The y.</param>
+        /// <param name="x">The x.</param>
+        public DsaKey(BigInteger p, BigInteger q, BigInteger g, BigInteger y, BigInteger x)
+        {
+            this._privateKey = new BigInteger[5];
+            this._privateKey[0] = p;
+            this._privateKey[1] = q;
+            this._privateKey[2] = g;
+            this._privateKey[3] = y;
+            this._privateKey[4] = x;
+        }
+
         #region IDisposable Members
 
         private bool _isDisposed = false;

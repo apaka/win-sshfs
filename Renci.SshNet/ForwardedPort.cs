@@ -17,26 +17,6 @@ namespace Renci.SshNet
         internal Session Session { get; set; }
 
         /// <summary>
-        /// Gets the bound host.
-        /// </summary>
-        public string BoundHost { get; internal set; }
-
-        /// <summary>
-        /// Gets the bound port.
-        /// </summary>
-        public uint BoundPort { get; internal set; }
-
-        /// <summary>
-        /// Gets the forwarded host.
-        /// </summary>
-        public string Host { get; internal set; }
-
-        /// <summary>
-        /// Gets the forwarded port.
-        /// </summary>
-        public uint Port { get; internal set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether port forwarding started.
         /// </summary>
         /// <value>
@@ -53,14 +33,6 @@ namespace Renci.SshNet
         /// Occurs when port forwarding request received.
         /// </summary>
         public event EventHandler<PortForwardEventArgs> RequestReceived;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Port"/> class.
-        /// </summary>
-        internal ForwardedPort()
-        {
-
-        }
 
         /// <summary>
         /// Starts port forwarding.
@@ -85,7 +57,10 @@ namespace Renci.SshNet
         /// </summary>
         public virtual void Stop()
         {
-            this.Session.ErrorOccured -= Session_ErrorOccured;
+            if (this.Session != null)
+            {
+                this.Session.ErrorOccured -= Session_ErrorOccured;
+            }
         }
 
         /// <summary>

@@ -12,8 +12,6 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
     /// </summary>
     public class RsaCipher : AsymmetricCipher
     {
-        private static RNGCryptoServiceProvider _randomizer = new System.Security.Cryptography.RNGCryptoServiceProvider();
-
         private bool _isPrivate;
 
         private RsaKey _key;
@@ -36,11 +34,14 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
         /// Encrypts the specified data.
         /// </summary>
         /// <param name="data">The data.</param>
-        /// <returns></returns>
+        /// <returns>Encrypted data.</returns>
         public override byte[] Encrypt(byte[] data)
         {
             //  Calculate signature
-            var paddedBlock = new byte[this._key.Modulus.BitLength / 8 - 1];
+            var bitLength = this._key.Modulus.BitLength;
+
+            var paddedBlock = new byte[bitLength / 8 + (bitLength % 8 > 0 ? 1 : 0) - 1];
+
             paddedBlock[0] = 0x01;
             for (int i = 1; i < paddedBlock.Length - data.Length - 1; i++)
             {
@@ -56,7 +57,10 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
         /// Decrypts the specified data.
         /// </summary>
         /// <param name="data">The data.</param>
-        /// <returns></returns>
+        /// <returns>
+        /// Decrypted data.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">Only block type 01 or 02 are supported.</exception>
         /// <exception cref="NotSupportedException">Thrown when decrypted block type is not supported.</exception>
         public override byte[] Decrypt(byte[] data)
         {
@@ -94,14 +98,12 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
                 
                 var bitLength = this._key.Modulus.BitLength;
 
-                var bytesArray = new byte[bitLength / 8 + (((bitLength % 8) > 0) ? 1 : 0)];
+                if (max < BigInteger.One)
+                    throw new SshException("Invalid RSA key.");
 
                 while (random <= BigInteger.One || random >= max)
                 {
-                    _randomizer.GetBytes(bytesArray);
-
-                    bytesArray[bytesArray.Length - 1] = (byte)(bytesArray[bytesArray.Length - 1] & 0x7F);   //  Ensure not a negative value
-                    random = new BigInteger(bytesArray.Reverse().ToArray());
+                    random = BigInteger.Random(bitLength);
                 }
 
                 BigInteger blindedInput = BigInteger.PositiveMod((BigInteger.ModPow(random, this._key.Exponent, this._key.Modulus) * input), this._key.Modulus);

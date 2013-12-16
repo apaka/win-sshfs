@@ -40,7 +40,7 @@ namespace Renci.SshNet.Channels
         /// </summary>
         /// <param name="connectedHost">The connected host.</param>
         /// <param name="connectedPort">The connected port.</param>
-        public void Bind(string connectedHost, uint connectedPort)
+        public void Bind(IPAddress connectedHost, uint connectedPort)
         {
             byte[] buffer = null;
 
@@ -71,8 +71,8 @@ namespace Renci.SshNet.Channels
             }
 
             //  Start reading data from the port and send to channel
-            while (this._socket.Connected || this.IsConnected)
-            {
+            while (this._socket != null && this._socket.CanRead())
+                {
                 try
                 {
                     int read = 0;
@@ -106,12 +106,18 @@ namespace Renci.SshNet.Channels
                 }
             }
 
-            this.SendMessage(new ChannelEofMessage(this.RemoteChannelNumber));
-
             this.Close();
         }
 
-        partial void OpenSocket(string connectedHost, uint connectedPort);
+        partial void OpenSocket(IPAddress connectedHost, uint connectedPort);
+
+        public override void Close()
+        {
+            //  Send EOF message first when channel need to be closed
+            this.SendMessage(new ChannelEofMessage(this.RemoteChannelNumber));
+
+            base.Close();
+        }
 
         /// <summary>
         /// Called when channel data is received.

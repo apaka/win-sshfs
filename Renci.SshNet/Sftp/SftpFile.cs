@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security;
 using System.Globalization;
+using Renci.SshNet.Common;
 
 namespace Renci.SshNet.Sftp
 {
@@ -27,6 +28,9 @@ namespace Renci.SshNet.Sftp
         /// <exception cref="ArgumentNullException"><paramref name="sftpSession"/> or <paramref name="fullName"/> is null.</exception>
         internal SftpFile(SftpSession sftpSession, string fullName, SftpFileAttributes attributes)
         {
+            if (sftpSession == null)
+                throw new SshConnectionException("Client not connected.");
+
             if (attributes == null)
                 throw new ArgumentNullException("attributes");
 
@@ -64,6 +68,10 @@ namespace Renci.SshNet.Sftp
             {
                 return this.Attributes.LastAccessTime;
             }
+            set
+            {
+                this.Attributes.LastAccessTime = value;
+            }
         }
 
         /// <summary>
@@ -77,6 +85,46 @@ namespace Renci.SshNet.Sftp
             get
             {
                 return this.Attributes.LastWriteTime;
+            }
+            set
+            {
+                this.Attributes.LastWriteTime = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the time, in coordinated universal time (UTC), the current file or directory was last accessed.
+        /// </summary>
+        /// <value>
+        /// The time that the current file or directory was last accessed.
+        /// </value>
+        public DateTime LastAccessTimeUtc
+        {
+            get
+            {
+                return this.Attributes.LastAccessTime.ToUniversalTime();
+            }
+            set
+            {
+                this.Attributes.LastAccessTime = value.ToLocalTime();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the time, in coordinated universal time (UTC), when the current file or directory was last written to.
+        /// </summary>
+        /// <value>
+        /// The time the current file was last written.
+        /// </value>
+        public DateTime LastWriteTimeUtc
+        {
+            get
+            {
+                return this.Attributes.LastWriteTime.ToUniversalTime();
+            }
+            set
+            {
+                this.Attributes.LastWriteTime = value.ToLocalTime();
             }
         }
 
@@ -428,8 +476,11 @@ namespace Renci.SshNet.Sftp
         /// Moves a specified file to a new location on remote machine, providing the option to specify a new file name.
         /// </summary>
         /// <param name="destFileName">The path to move the file to, which can specify a different file name.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="destFileName"/> is null.</exception>
         public void MoveTo(string destFileName)
         {
+            if (destFileName == null)
+                throw new ArgumentNullException("destFileName");
             this._sftpSession.RequestRename(this.FullName, destFileName);
 
             var fullPath = this._sftpSession.GetCanonicalPath(destFileName);

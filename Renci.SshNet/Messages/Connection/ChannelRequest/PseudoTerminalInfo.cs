@@ -1,4 +1,7 @@
-﻿namespace Renci.SshNet.Messages.Connection
+﻿using System;
+using Renci.SshNet.Common;
+using System.Collections.Generic;
+namespace Renci.SshNet.Messages.Connection
 {
     /// <summary>
     /// Represents "pty-req" type channel request information
@@ -67,7 +70,7 @@
         /// <value>
         /// The terminal mode.
         /// </value>
-        public string TerminalMode { get; set; }
+        public IDictionary<TerminalModes, uint> TerminalModeValues { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PseudoTerminalRequestInfo"/> class.
@@ -85,8 +88,8 @@
         /// <param name="rows">The rows.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        /// <param name="terminalMode">The terminal mode.</param>
-        public PseudoTerminalRequestInfo(string environmentVariable, uint columns, uint rows, uint width, uint height, string terminalMode)
+        /// <param name="terminalModeValues">The terminal mode values.</param>
+        public PseudoTerminalRequestInfo(string environmentVariable, uint columns, uint rows, uint width, uint height, IDictionary<TerminalModes, uint> terminalModeValues)
             : this()
         {
             this.EnvironmentVariable = environmentVariable;
@@ -94,22 +97,7 @@
             this.Rows = rows;
             this.PixelWidth = width;
             this.PixelHeight = height;
-            this.TerminalMode = terminalMode;
-        }
-
-        /// <summary>
-        /// Called when type specific data need to be loaded.
-        /// </summary>
-        protected override void LoadData()
-        {
-            base.LoadData();
-
-            this.EnvironmentVariable = this.ReadString();
-            this.Columns = this.ReadUInt32();
-            this.Rows = this.ReadUInt32();
-            this.PixelWidth = this.ReadUInt32();
-            this.PixelHeight = this.ReadUInt32();
-            this.TerminalMode = this.ReadString();
+            this.TerminalModeValues = terminalModeValues;
         }
 
         /// <summary>
@@ -124,8 +112,22 @@
             this.Write(this.Rows);
             this.Write(this.Rows);
             this.Write(this.PixelHeight);
-            this.Write(this.TerminalMode);
 
+            if (this.TerminalModeValues != null)
+            {
+                this.Write((uint)this.TerminalModeValues.Count * (1 + 4) + 1);
+
+                foreach (var item in this.TerminalModeValues)
+                {
+                    this.Write((byte)item.Key);
+                    this.Write(item.Value);
+                }
+                this.Write((byte)0);
+            }
+            else
+            {
+                this.Write((uint)0);
+            }
         }
     }
 }

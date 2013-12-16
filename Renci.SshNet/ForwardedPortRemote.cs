@@ -5,6 +5,7 @@ using Renci.SshNet.Messages.Connection;
 using Renci.SshNet.Common;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 
 namespace Renci.SshNet
 {
@@ -16,6 +17,77 @@ namespace Renci.SshNet
         private bool _requestStatus;
 
         private EventWaitHandle _globalRequestResponse = new AutoResetEvent(false);
+
+        /// <summary>
+        /// Gets the bound host.
+        /// </summary>
+        public IPAddress BoundHostAddress { get; protected set; }
+
+        /// <summary>
+        /// Gets the bound host.
+        /// </summary>
+        public string BoundHost
+        {
+            get
+            {
+                return this.BoundHostAddress.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Gets the bound port.
+        /// </summary>
+        public uint BoundPort { get; protected set; }
+
+        /// <summary>
+        /// Gets the forwarded host.
+        /// </summary>
+        public IPAddress HostAddress { get; protected set; }
+
+        /// <summary>
+        /// Gets the forwarded host.
+        /// </summary>
+        public string Host
+        {
+            get
+            {
+                return this.HostAddress.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Gets the forwarded port.
+        /// </summary>
+        public uint Port { get; protected set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ForwardedPortRemote" /> class.
+        /// </summary>
+        /// <param name="boundHostAddress">The bound host address.</param>
+        /// <param name="boundPort">The bound port.</param>
+        /// <param name="hostAddress">The host address.</param>
+        /// <param name="port">The port.</param>
+        /// <exception cref="System.ArgumentNullException">boundHost</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">boundPort</exception>
+        public ForwardedPortRemote(IPAddress boundHostAddress, uint boundPort, IPAddress hostAddress, uint port)
+        {
+            if (boundHostAddress == null)
+                throw new ArgumentNullException("boundHost");
+
+            if (hostAddress == null)
+                throw new ArgumentNullException("host");
+
+            if (!boundPort.IsValidPort())
+                throw new ArgumentOutOfRangeException("boundPort");
+
+            if (!port.IsValidPort())
+                throw new ArgumentOutOfRangeException("port");
+
+            this.BoundHostAddress = boundHostAddress;
+            this.BoundPort = boundPort;
+            this.HostAddress = hostAddress;
+            this.Port = port;
+        }
 
         /// <summary>
         /// Starts remote port forwarding.
@@ -92,7 +164,7 @@ namespace Renci.SshNet
                             this.RaiseRequestReceived(info.OriginatorAddress, info.OriginatorPort);
 
                             var channel = this.Session.CreateChannel<ChannelForwardedTcpip>(e.Message.LocalChannelNumber, e.Message.InitialWindowSize, e.Message.MaximumPacketSize);
-                            channel.Bind(this.Host, this.Port);
+                            channel.Bind(this.HostAddress, this.Port);
                         }
                         catch (Exception exp)
                         {

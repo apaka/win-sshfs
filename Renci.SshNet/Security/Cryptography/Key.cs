@@ -31,6 +31,14 @@ namespace Renci.SshNet.Security
         public abstract BigInteger[] Public { get; set; }
 
         /// <summary>
+        /// Gets the length of the key.
+        /// </summary>
+        /// <value>
+        /// The length of the key.
+        /// </value>
+        public abstract int KeyLength { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Key"/> class.
         /// </summary>
         /// <param name="data">DER encoded private key data.</param>
@@ -64,7 +72,9 @@ namespace Renci.SshNet.Security
         /// Signs the specified data with the key.
         /// </summary>
         /// <param name="data">The data to sign.</param>
-        /// <returns>Signed data.</returns>
+        /// <returns>
+        /// Signed data.
+        /// </returns>
         public byte[] Sign(byte[] data)
         {
             return this.DigitalSignature.Sign(data);
@@ -75,7 +85,7 @@ namespace Renci.SshNet.Security
         /// </summary>
         /// <param name="data">The data to verify.</param>
         /// <param name="signature">The signature to verify against.</param>
-        /// <returns></returns>
+        /// <returns><c>True</c> is signature was successfully verifies; otherwise <c>false</c>.</returns>
         public bool VerifySignature(byte[] data, byte[] signature)
         {
             return this.DigitalSignature.Verify(data, signature);

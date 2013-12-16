@@ -7,6 +7,7 @@ using System.Threading;
 using Renci.SshNet.Channels;
 using Renci.SshNet.Common;
 using Renci.SshNet.Messages.Connection;
+using System.Collections.Generic;
 
 namespace Renci.SshNet
 {
@@ -33,7 +34,7 @@ namespace Renci.SshNet
 
         private uint _height;
 
-        private string _terminalMode;
+        private IDictionary<TerminalModes, uint> _terminalModes;
 
         private EventWaitHandle _dataReaderTaskCompleted;
 
@@ -90,7 +91,7 @@ namespace Renci.SshNet
         /// <param name="height">The height.</param>
         /// <param name="terminalMode">The terminal mode.</param>
         /// <param name="bufferSize">Size of the buffer for output stream.</param>
-        internal Shell(Session session, Stream input, Stream output, Stream extendedOutput, string terminalName, uint columns, uint rows, uint width, uint height, string terminalMode, int bufferSize)
+        internal Shell(Session session, Stream input, Stream output, Stream extendedOutput, string terminalName, uint columns, uint rows, uint width, uint height, IDictionary<TerminalModes, uint> terminalModes, int bufferSize)
         {
             this._session = session;
             this._input = input;
@@ -101,7 +102,7 @@ namespace Renci.SshNet
             this._rows = rows;
             this._width = width;
             this._height = height;
-            this._terminalMode = terminalMode;
+            this._terminalModes = terminalModes;
             this._bufferSize = bufferSize;
         }
 
@@ -129,7 +130,7 @@ namespace Renci.SshNet
             this._session.ErrorOccured += Session_ErrorOccured;
 
             this._channel.Open();
-            this._channel.SendPseudoTerminalRequest(this._terminalName, this._columns, this._rows, this._width, this._height, this._terminalMode);
+            this._channel.SendPseudoTerminalRequest(this._terminalName, this._columns, this._rows, this._width, this._height, this._terminalModes);
             this._channel.SendShellRequest();
 
             this._channelClosedWaitHandle = new AutoResetEvent(false);
@@ -153,7 +154,7 @@ namespace Renci.SshNet
                             var read = this._input.EndRead(result);
                             if (read > 0)
                             {
-                                this._session.SendMessage(new ChannelDataMessage(this._channel.RemoteChannelNumber, buffer.Take(read).ToArray()));
+                                this._channel.SendData(buffer.Take(read).ToArray());
                             }
 
                         }, null);
@@ -198,6 +199,8 @@ namespace Renci.SshNet
             //  If channel is open then close it to cause Channel_Closed method to be called
             if (this._channel != null && this._channel.IsOpen)
             {
+                this._channel.SendEof();
+
                 this._channel.Close();
             }
         }
@@ -209,9 +212,10 @@ namespace Renci.SshNet
 
         private void RaiseError(ExceptionEventArgs e)
         {
-            if (this.ErrorOccurred != null)
+            var handler = this.ErrorOccurred;
+            if (handler != null)
             {
-                this.ErrorOccurred(this, e);
+                handler(this, e);
             }
         }
 
@@ -245,7 +249,11 @@ namespace Renci.SshNet
             }
 
             if (this._channel.IsOpen)
+            {
+                this._channel.SendEof();
+
                 this._channel.Close();
+            }
 
             this._channelClosedWaitHandle.Set();
 
@@ -304,6 +312,12 @@ namespace Renci.SshNet
                     {
                         this._channelClosedWaitHandle.Dispose();
                         this._channelClosedWaitHandle = null;
+                    }
+
+                    if (this._channel != null)
+                    {
+                        this._channel.Dispose();
+                        this._channel = null;
                     }
 
                     if (this._dataReaderTaskCompleted != null)

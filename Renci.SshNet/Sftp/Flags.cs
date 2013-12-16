@@ -1,8 +1,5 @@
-﻿using System;
-
-namespace Renci.SshNet.Sftp
+﻿namespace Renci.SshNet.Sftp
 {
-    [Flags]
     public enum Flags
     {
         None = 0x00000000,

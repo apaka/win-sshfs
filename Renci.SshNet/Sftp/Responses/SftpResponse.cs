@@ -5,9 +5,16 @@ using System.Text;
 
 namespace Renci.SshNet.Sftp.Responses
 {
-    internal abstract class SftpResponse : SftpMessage
+    public abstract class SftpResponse : SftpMessage
     {
         public uint ResponseId { get; private set; }
+
+        public uint ProtocolVersion { get; private set; }
+
+        public SftpResponse(uint protocolVersion)
+        {
+            this.ProtocolVersion = protocolVersion;
+        }
 
         protected override void LoadData()
         {

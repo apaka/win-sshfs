@@ -13,16 +13,15 @@ namespace Renci.SshNet.Security.Cryptography
     /// </summary>
     public class DsaDigitalSignature : DigitalSignature, IDisposable
     {
-        private static RNGCryptoServiceProvider _randomizer = new System.Security.Cryptography.RNGCryptoServiceProvider();
-        
         private HashAlgorithm _hash;
 
         private DsaKey _key;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DsaDigitalSignature"/> class.
+        /// Initializes a new instance of the <see cref="DsaDigitalSignature" /> class.
         /// </summary>
         /// <param name="key">The DSA key.</param>
+        /// <exception cref="System.ArgumentNullException">key</exception>
         public DsaDigitalSignature(DsaKey key)
         {
             if (key == null)
@@ -38,7 +37,10 @@ namespace Renci.SshNet.Security.Cryptography
         /// </summary>
         /// <param name="input">The input.</param>
         /// <param name="signature">The signature.</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <c>True</c> if signature was successfully verified; otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="System.InvalidOperationException">Invalid signature.</exception>
         public override bool Verify(byte[] input, byte[] signature)
         {
             var hashInput = this._hash.ComputeHash(input);
@@ -91,7 +93,10 @@ namespace Renci.SshNet.Security.Cryptography
         /// Creates the signature.
         /// </summary>
         /// <param name="input">The input.</param>
-        /// <returns></returns>
+        /// <returns>
+        /// Signed input data.
+        /// </returns>
+        /// <exception cref="SshException">Invalid DSA key.</exception>
         public override byte[] Sign(byte[] input)
         {
             var hashInput = this._hash.ComputeHash(input);
@@ -103,25 +108,20 @@ namespace Renci.SshNet.Security.Cryptography
 
             do
             {
-                BigInteger k;
+                BigInteger k = BigInteger.Zero;
 
                 do
                 {
-                    //  TODO:   Take random function to BigInteger
-
                     //  Generate a random per-message value k where 0 < k < q
                     var bitLength = this._key.Q.BitLength;
 
-                    var bytesArray = new byte[bitLength / 8 + (((bitLength % 8) > 0) ? 1 : 0)];
-                    
-                    do
-                    {
-                        _randomizer.GetBytes(bytesArray);
+                    if (this._key.Q < BigInteger.Zero)
+                        throw new SshException("Invalid DSA key.");
 
-                        bytesArray[bytesArray.Length - 1] = (byte)(bytesArray[bytesArray.Length - 1] & 0x7F);   //  Ensure not a negative value
-                        k = new BigInteger(bytesArray.Reverse().ToArray());
+                    while (k <= 0 || k >= this._key.Q)
+                    {
+                        k = BigInteger.Random(bitLength);
                     }
-                    while (k <= 0 || k >= this._key.Q);
 
                     //  Calculate r = ((g pow k) mod p) mod q
                     r = BigInteger.ModPow(this._key.G, k, this._key.P) % this._key.Q;
@@ -172,7 +172,7 @@ namespace Renci.SshNet.Security.Cryptography
                     // Dispose managed ResourceMessages.
                     if (this._hash != null)
                     {
-                        this._hash.Dispose();
+                        this._hash.Clear();
                         this._hash = null;
                     }
                 }

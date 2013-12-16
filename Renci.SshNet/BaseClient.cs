@@ -59,7 +59,7 @@ namespace Renci.SshNet
 
                 if (this._keepAliveTimer == null)
                 {
-                    this._keepAliveTimer = new Timer((state) => 
+                    this._keepAliveTimer = new Timer((state) =>
                     {
                         this.SendKeepAlive();
                     });
@@ -72,7 +72,18 @@ namespace Renci.SshNet
         /// <summary>
         /// Occurs when an error occurred.
         /// </summary>
+        /// <example>
+        ///   <code source="..\..\Renci.SshNet.Tests\Classes\SshClientTest.cs" region="Example SshClient Connect ErrorOccurred" language="C#" title="Handle ErrorOccurred event" />
+        /// </example>
         public event EventHandler<ExceptionEventArgs> ErrorOccurred;
+
+        /// <summary>
+        /// Occurs when host key received.
+        /// </summary>
+        /// <example>
+        ///   <code source="..\..\Renci.SshNet.Tests\Classes\SshClientTest.cs" region="Example SshClient Connect HostKeyReceived" language="C#" title="Handle HostKeyReceived event" />
+        /// </example>
+        public event EventHandler<HostKeyEventArgs> HostKeyReceived;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseClient"/> class.
@@ -101,8 +112,9 @@ namespace Renci.SshNet
             }
 
             this.Session = new Session(this.ConnectionInfo);
-            this.Session.Connect();
+            this.Session.HostKeyReceived += Session_HostKeyReceived;
             this.Session.ErrorOccured += Session_ErrorOccured;
+            this.Session.Connect();
 
             this.OnConnected();
         }
@@ -117,7 +129,7 @@ namespace Renci.SshNet
 
             this.OnDisconnecting();
 
-            this.Dispose();
+            this.Session.Disconnect();
 
             this.OnDisconnected();
         }
@@ -167,22 +179,22 @@ namespace Renci.SshNet
         {
 
         }
-        
-        /// <summary>
-        /// Ensures that client is connected.
-        /// </summary>
-        /// <exception cref="Renci.SshNet.Common.SshConnectionException">When client not connected.</exception>
-        protected void EnsureConnection()
+
+         private void Session_ErrorOccured(object sender, ExceptionEventArgs e)
         {
-            if (!this.Session.IsConnected)
-                throw new SshConnectionException("Client not connected.");
+            var handler = this.ErrorOccurred;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
         }
 
-        private void Session_ErrorOccured(object sender, ExceptionEventArgs e)
+        private void Session_HostKeyReceived(object sender, HostKeyEventArgs e)
         {
-            if (this.ErrorOccurred != null)
+            var handler = this.HostKeyReceived;
+            if (handler != null)
             {
-                this.ErrorOccurred(this, e);
+                handler(this, e);
             }
         }
 
@@ -215,12 +227,14 @@ namespace Renci.SshNet
                 {
                     // Dispose managed ResourceMessages.
                     this.Session.ErrorOccured -= Session_ErrorOccured;
+                    this.Session.HostKeyReceived -= Session_HostKeyReceived;
 
                     if (this.Session != null)
                     {
                         this.Session.Dispose();
                         this.Session = null;
                     }
+
                     if (this._keepAliveTimer != null)
                     {
                         this._keepAliveTimer.Dispose();

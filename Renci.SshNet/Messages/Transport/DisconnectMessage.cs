@@ -6,7 +6,7 @@ namespace Renci.SshNet.Messages.Transport
     /// Represents SSH_MSG_DISCONNECT message.
     /// </summary>
     [Message("SSH_MSG_DISCONNECT", 1)]
-    public class DisconnectMessage : Message,IKeyExchangedAllowed
+    public class DisconnectMessage : Message, IKeyExchangedAllowed
     {
         /// <summary>
         /// Gets disconnect reason code.
@@ -58,7 +58,7 @@ namespace Renci.SshNet.Messages.Transport
         protected override void SaveData()
         {
             this.Write((uint)this.ReasonCode);
-            this.Write(this.Description, Encoding.UTF8);
+            this.Write(this.Description);
             this.Write(this.Language ?? "en");
         }
     }

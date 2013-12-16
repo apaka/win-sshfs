@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DokanNet", "..\DokanNet\DokanNet.csproj", "{A09B408A-26A0-4FF8-83D5-6E1B1DA5F63C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Renci.SshNet", "..\Renci.SshNet\Renci.SshNet.csproj", "{2F5F8C90-0BD1-424F-997C-7BC6280919D1}"
@@ -49,13 +49,12 @@ Global
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|x86.ActiveCfg = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|x86.Build.0 = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Any CPU.ActiveCfg = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Any CPU.Build.0 = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Mixed Platforms.ActiveCfg = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Mixed Platforms.Build.0 = DebugNoTimeout|Any CPU
-		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|x86.ActiveCfg = DebugNoTimeout|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Any CPU.Build.0 = Debug|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|Mixed Platforms.Build.0 = Debug|Any CPU
+		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.DebugNoTimeout|x86.ActiveCfg = Debug|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU

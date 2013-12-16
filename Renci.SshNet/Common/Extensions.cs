@@ -61,8 +61,8 @@ namespace Renci.SshNet
                 }
                 finally
                 {
-                    enumerator1.Dispose();
-                    enumerator2.Dispose();
+                    if (enumerator1 != null) enumerator1.Dispose();
+                    if (enumerator2 != null) enumerator2.Dispose();
                 }
             }
         }
@@ -79,14 +79,12 @@ namespace Renci.SshNet
         }
 
 #if SILVERLIGHT
-#else 
-        
+#else
 
         /// <summary>
         /// Prints out 
         /// </summary>
         /// <param name="bytes">The bytes.</param>
-         
         internal static void DebugPrint(this IEnumerable<byte> bytes)
         {
             foreach (var b in bytes)
@@ -101,7 +99,7 @@ namespace Renci.SshNet
         /// Trims the leading zero from bytes array.
         /// </summary>
         /// <param name="data">The data.</param>
-        /// <returns></returns>
+        /// <returns>Data without leading zeros.</returns>
         internal static IEnumerable<byte> TrimLeadingZero(this IEnumerable<byte> data)
         {
             bool leadingZero = true;
@@ -174,30 +172,52 @@ namespace Renci.SshNet
         }
 
 #if SILVERLIGHT
-        private static Regex _rehost = new Regex(@"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$", RegexOptions.IgnoreCase);
+        private static Regex _rehost = new Regex(@"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", RegexOptions.IgnoreCase);
 
         private static Regex _reIPv6 = new Regex(@"^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1\d|[1-9])?\d)(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:|\.)\z", RegexOptions.IgnoreCase);
 #else
-        private static readonly Regex _rehost = new Regex(@"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static Regex _rehost = new Regex(@"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex _reIPv6 = new Regex(@"^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1\d|[1-9])?\d)(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:|\.)\z", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
+        private static Regex _reIPv6 = new Regex(@"^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1\d|[1-9])?\d)(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:|\.)\z", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 #endif
 
-       internal static bool IsValidHost(this string value)
-       {
-           return value != null && (_rehost.Match(value).Success || _reIPv6.Match(value).Success);
-       }
+        internal static bool IsValidHost(this string value)
+        {
+            if (value == null)
+                return false;
+
+            if (value == string.Empty)
+                return true;
+
+            if (_rehost.Match(value).Success)
+                return true;
+
+            if (_reIPv6.Match(value).Success)
+                return true;
+
+            return false;
+        }
 
         internal static bool IsValidPort(this uint value)
         {
-            return value >= IPEndPoint.MinPort && value <= IPEndPoint.MaxPort;
+            if (value < IPEndPoint.MinPort)
+                return false;
+
+            if (value > IPEndPoint.MaxPort)
+                return false;
+            return true;
         }
 
         internal static bool IsValidPort(this int value)
         {
-            return value >= IPEndPoint.MinPort && value <= IPEndPoint.MaxPort;
+            if (value < IPEndPoint.MinPort)
+                return false;
+
+            if (value > IPEndPoint.MaxPort)
+                return false;
+            return true;
         }
+
     }
 }

@@ -118,6 +118,20 @@ namespace Renci.SshNet.Security
             }
         }
 
+        /// <summary>
+        /// Gets the length of the key.
+        /// </summary>
+        /// <value>
+        /// The length of the key.
+        /// </value>
+        public override int KeyLength
+        {
+            get
+            {
+                return this.Modulus.BitLength;
+            }
+        }
+
         private RsaDigitalSignature _digitalSignature;
         /// <summary>
         /// Gets the digital signature.
@@ -172,6 +186,34 @@ namespace Renci.SshNet.Security
         {
             if (this._privateKey.Length != 8)
                 throw new InvalidOperationException("Invalid private key.");
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RsaKey"/> class.
+        /// </summary>
+        /// <param name="modulus">The modulus.</param>
+        /// <param name="exponent">The exponent.</param>
+        /// <param name="d">The d.</param>
+        /// <param name="p">The p.</param>
+        /// <param name="q">The q.</param>
+        /// <param name="inverseQ">The inverse Q.</param>
+        public RsaKey(BigInteger modulus, BigInteger exponent, BigInteger d, BigInteger p, BigInteger q, BigInteger inverseQ)
+        {
+            this._privateKey = new BigInteger[8];
+            this._privateKey[0] = modulus;
+            this._privateKey[1] = exponent;
+            this._privateKey[2] = d;
+            this._privateKey[3] = p;
+            this._privateKey[4] = q;
+            this._privateKey[5] = PrimeExponent(d, p);
+            this._privateKey[6] = PrimeExponent(d, q);
+            this._privateKey[7] = inverseQ;
+        }
+
+        private static BigInteger PrimeExponent(BigInteger privateExponent, BigInteger prime)
+        {
+            BigInteger pe = prime - new BigInteger(1);
+            return privateExponent % pe;
         }
 
         #region IDisposable Members

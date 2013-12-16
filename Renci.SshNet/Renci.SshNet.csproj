@@ -12,61 +12,39 @@
     <AssemblyName>Renci.SshNet</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <SccProjectName>
-    </SccProjectName>
-    <SccLocalPath>
-    </SccLocalPath>
-    <SccAuxPath>
-    </SccAuxPath>
-    <SccProvider>
-    </SccProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NOTIMEOUT</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>0</WarningLevel>
     <DocumentationFile>bin\Debug\Renci.SshNet.xml</DocumentationFile>
-    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\Renci.SshNet.xml</DocumentationFile>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebugNoTimeout|AnyCPU'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\DebugNoTimeout\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <CodeAnalysisLogFile>bin\Debug\Renci.SshClient.dll.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisUseTypeNameInSuppression>true</CodeAnalysisUseTypeNameInSuppression>
-    <CodeAnalysisModuleSuppressionsFile>GlobalSuppressions.cs</CodeAnalysisModuleSuppressionsFile>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <CodeAnalysisRuleSetDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\\Rule Sets</CodeAnalysisRuleSetDirectories>
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisRuleDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-    <DocumentationFile>bin\DebugNoTimeout\Renci.SshNet.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AuthenticationMethod.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AuthenticationResult.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="BaseClient.cs" />
     <Compile Include="ChannelAsyncResult.cs" />
     <Compile Include="Channels\Channel.cs" />
@@ -77,6 +55,7 @@
     <Compile Include="Channels\ChannelSession.cs" />
     <Compile Include="Channels\ChannelTypes.cs" />
     <Compile Include="CipherInfo.cs" />
+    <Compile Include="Common\ASCIIEncoding.cs" />
     <Compile Include="Common\AsyncResult.cs" />
     <Compile Include="Common\AuthenticationBannerEventArgs.cs" />
     <Compile Include="Common\AuthenticationEventArgs.cs" />
@@ -90,17 +69,34 @@
     <Compile Include="Common\ChannelEventArgs.cs" />
     <Compile Include="Common\ChannelOpenFailedEventArgs.cs" />
     <Compile Include="Common\ChannelRequestEventArgs.cs" />
+    <Compile Include="Common\Extensions.NET.cs" />
+    <Compile Include="Common\ProxyException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Common\ProxyException.NET40.cs" />
+    <Compile Include="Common\HostKeyEventArgs.cs" />
+    <Compile Include="Common\NetConfServerException.NET40.cs" />
     <Compile Include="Common\DerData.cs" />
     <Compile Include="Common\ExceptionEventArgs.cs" />
     <Compile Include="Common\Extensions.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Common\Extensions.NET40.cs">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="Common\NetConfServerException.cs" />
     <Compile Include="Common\ObjectIdentifier.cs" />
     <Compile Include="Common\PipeStream.cs" />
     <Compile Include="Common\PortForwardEventArgs.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Common\ScpDownloadEventArgs.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Common\ScpException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Common\ScpException.NET40.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Common\ScpUploadEventArgs.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Common\SemaphoreLight.cs">
@@ -110,6 +106,7 @@
     <Compile Include="Common\SftpPathNotFoundException.NET40.cs" />
     <Compile Include="Common\SftpPermissionDeniedException.cs" />
     <Compile Include="Common\SftpPermissionDeniedException.NET40.cs" />
+    <Compile Include="Common\ShellDataEventArgs.cs" />
     <Compile Include="Common\SshAuthenticationException.cs" />
     <Compile Include="Common\SshAuthenticationException.NET40.cs" />
     <Compile Include="Common\SshConnectionException.cs" />
@@ -121,12 +118,74 @@
     <Compile Include="Common\SshOperationTimeoutException.NET40.cs" />
     <Compile Include="Common\SshPassPhraseNullOrEmptyException.cs" />
     <Compile Include="Common\SshPassPhraseNullOrEmptyException.NET40.cs" />
+    <Compile Include="Common\TerminalModes.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Compression\CompressionMode.cs" />
     <Compile Include="Compression\Compressor.cs" />
     <Compile Include="Compression\Zlib.cs" />
     <Compile Include="Compression\ZlibOpenSsh.cs" />
-    <Compile Include="ConnectionInfo.cs">
+    <Compile Include="Compression\ZlibStream.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ConnectionInfo.cs" />
+    <Compile Include="ForwardedPortRemote.NET.cs" />
+    <Compile Include="HashInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Messages\Transport\KeyExchangeEcdhInitMessage.cs" />
+    <Compile Include="Messages\Transport\KeyExchangeEcdhReplyMessage.cs" />
+    <Compile Include="Security\Cryptography\Hashes\RIPEMD160Hash.cs" />
+    <Compile Include="Security\Cryptography\Hashes\SHA2HashBase.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Security\Cryptography\Hashes\SHA384Hash.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Security\Cryptography\Hashes\SHA512Hash.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Security\KeyExchangeEllipticCurveDiffieHellman.cs" />
+    <Compile Include="ShellStream.NET40.cs" />
+    <Compile Include="ExpectAsyncResult.cs" />
+    <Compile Include="Security\KeyExchangeDiffieHellmanGroupSha1.cs" />
+    <Compile Include="SftpClient.NET.cs" />
+    <Compile Include="KeyboardInteractiveAuthenticationMethod.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KeyboardInteractiveAuthenticationMethod.NET40.cs" />
+    <Compile Include="KeyboardInteractiveConnectionInfo.cs" />
+    <Compile Include="NoneAuthenticationMethod.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PasswordAuthenticationMethod.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PasswordAuthenticationMethod.NET40.cs" />
+    <Compile Include="ExpectAction.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ForwardedPortDynamic.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ForwardedPortDynamic.NET.cs" />
+    <Compile Include="ForwardedPortDynamic.NET40.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ForwardedPortLocal.NET.cs" />
+    <Compile Include="Messages\Transport\IKeyExchangedAllowed.cs" />
+    <Compile Include="PasswordConnectionInfo.cs" />
+    <Compile Include="PrivateKeyAuthenticationMethod.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PrivateKeyConnectionInfo.cs" />
+    <Compile Include="ProxyTypes.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ScpClient.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ScpClient.NET.cs" />
     <Compile Include="ForwardedPort.cs" />
     <Compile Include="ForwardedPortLocal.cs">
       <SubType>Code</SubType>
@@ -136,8 +195,6 @@
     </Compile>
     <Compile Include="ForwardedPortRemote.cs" />
     <Compile Include="ForwardedPortRemote.NET40.cs" />
-    <Compile Include="KeyboardInteractiveConnectionInfo.cs" />
-    <Compile Include="KeyboardInteractiveConnectionInfo.NET40.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="Messages\Authentication\BannerMessage.cs" />
     <Compile Include="Messages\Authentication\FailureMessage.cs" />
@@ -169,6 +226,7 @@
     <Compile Include="Messages\Connection\ChannelOpen\ForwardedTcpipChannelInfo.cs" />
     <Compile Include="Messages\Connection\ChannelOpen\SessionChannelOpenInfo.cs" />
     <Compile Include="Messages\Connection\ChannelOpen\X11ChannelOpenInfo.cs" />
+    <Compile Include="Messages\Connection\ChannelRequest\BreakRequestInfo.cs" />
     <Compile Include="Messages\Connection\ChannelRequest\ChannelRequestMessage.cs" />
     <Compile Include="Messages\Connection\ChannelRequest\EndOfWriteRequestInfo.cs" />
     <Compile Include="Messages\Connection\ChannelRequest\EnvironmentVariableRequestInfo.cs" />
@@ -201,7 +259,6 @@
     </Compile>
     <Compile Include="Messages\Transport\DisconnectReason.cs" />
     <Compile Include="Messages\Transport\IgnoreMessage.cs" />
-    <Compile Include="Messages\Transport\IKeyExchangedAllowed.cs" />
     <Compile Include="Messages\Transport\KeyExchangeDhGroupExchangeGroup.cs" />
     <Compile Include="Messages\Transport\KeyExchangeDhGroupExchangeInit.cs" />
     <Compile Include="Messages\Transport\KeyExchangeDhGroupExchangeReply.cs" />
@@ -221,10 +278,8 @@
     <Compile Include="Messages\Transport\ServiceAcceptMessage.cs" />
     <Compile Include="Messages\Transport\ServiceRequestMessage.cs" />
     <Compile Include="Messages\Transport\UnimplementedMessage.cs" />
-    <Compile Include="NoneConnectionInfo.cs" />
-    <Compile Include="PasswordConnectionInfo.cs" />
-    <Compile Include="PasswordConnectionInfo.NET40.cs" />
-    <Compile Include="PrivateKeyConnectionInfo.cs" />
+    <Compile Include="NetConfClient.cs" />
+    <Compile Include="Netconf\NetConfSession.cs" />
     <Compile Include="PrivateKeyFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\Algorithm.cs">
@@ -246,6 +301,7 @@
     <Compile Include="Security\Cryptography\Ciphers\Modes\CfbCipherMode.cs" />
     <Compile Include="Security\Cryptography\Ciphers\Modes\CtrCipherMode.cs" />
     <Compile Include="Security\Cryptography\Ciphers\Modes\OfbCipherMode.cs" />
+    <Compile Include="Security\Cryptography\Ciphers\Paddings\PKCS5Padding.cs" />
     <Compile Include="Security\Cryptography\Ciphers\Paddings\PKCS7Padding.cs" />
     <Compile Include="Security\Cryptography\Ciphers\RsaCipher.cs">
       <SubType>Code</SubType>
@@ -319,13 +375,19 @@
     </Compile>
     <Compile Include="SftpClient.NET40.cs" />
     <Compile Include="Sftp\Flags.cs" />
-    <Compile Include="Sftp\OpenSshFilesytemInformation.cs" />
-    <Compile Include="Sftp\Requests\OpenSshStatVfsRequest.cs" />
-    <Compile Include="Sftp\Requests\OpenSshPosixRenameRequest.cs" />
+    <Compile Include="Sftp\Requests\ExtendedRequests\FStatVfsRequest.cs" />
+    <Compile Include="Sftp\Requests\ExtendedRequests\HardLinkRequest.cs" />
+    <Compile Include="Sftp\Requests\SftpUnblockRequest.cs" />
+    <Compile Include="Sftp\Requests\SftpBlockRequest.cs" />
+    <Compile Include="Sftp\Requests\SftpExtendedRequest.cs" />
+    <Compile Include="Sftp\Requests\ExtendedRequests\PosixRenameRequest.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Sftp\Requests\SftpCloseRequest.cs" />
     <Compile Include="Sftp\Requests\SftpFSetStatRequest.cs" />
     <Compile Include="Sftp\Requests\SftpFStatRequest.cs" />
     <Compile Include="Sftp\Requests\SftpInitRequest.cs" />
+    <Compile Include="Sftp\Requests\SftpLinkRequest.cs" />
     <Compile Include="Sftp\Requests\SftpLStatRequest.cs" />
     <Compile Include="Sftp\Requests\SftpMkDirRequest.cs" />
     <Compile Include="Sftp\Requests\SftpOpenDirRequest.cs" />
@@ -342,7 +404,11 @@
     <Compile Include="Sftp\Requests\SftpStatRequest.cs" />
     <Compile Include="Sftp\Requests\SftpSymLinkRequest.cs" />
     <Compile Include="Sftp\Requests\SftpWriteRequest.cs" />
-    <Compile Include="Sftp\Responses\OpenSshStatVfsResponse.cs" />
+    <Compile Include="Sftp\Requests\ExtendedRequests\StatVfsRequest.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Sftp\Responses\ExtendedReplies\ExtendedReplyInfo.cs" />
+    <Compile Include="Sftp\Responses\ExtendedReplies\StatVfsReplyInfo.cs" />
     <Compile Include="Sftp\Responses\SftpAttrsResponse.cs" />
     <Compile Include="Sftp\Responses\SftpDataResponse.cs" />
     <Compile Include="Sftp\Responses\SftpExtendedReplyResponse.cs" />
@@ -358,6 +424,9 @@
     <Compile Include="Sftp\SftpFile.cs" />
     <Compile Include="Sftp\SftpFileAttributes.cs" />
     <Compile Include="Sftp\SftpFileStream.cs" />
+    <Compile Include="Sftp\SftpFileSystemInformation.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Sftp\SftpListDirectoryAsyncResult.cs" />
     <Compile Include="Sftp\SftpMessage.cs" />
     <Compile Include="Sftp\SftpMessageTypes.cs">
@@ -366,45 +435,27 @@
     <Compile Include="Sftp\SftpSession.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Sftp\SftpSynchronizeDirectoriesAsyncResult.cs" />
     <Compile Include="Sftp\SftpUploadAsyncResult.cs" />
     <Compile Include="Sftp\StatusCodes.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Shell.cs" />
     <Compile Include="Shell.NET40.cs" />
+    <Compile Include="ShellStream.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="SshClient.cs" />
     <Compile Include="SshCommand.cs" />
     <Compile Include="SshCommand.NET40.cs" />
     <Compile Include="SubsystemSession.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Documentation\Content\About.aml" />
-    <None Include="Documentation\Content\Guide\Guide.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.Asynchronous.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.Error.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.Multitasking.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.StatusCode.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Command.Timeout.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.ChangePassword.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.Interactive.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.Password.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.PrivateKey.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.Prompt.aml" />
-    <None Include="Documentation\Content\Guide\Guide.Connection.Timeout.aml" />
-    <None Include="Documentation\Content\Guide\Guide.PortForward.aml" />
-    <None Include="Documentation\Content\Guide\Guide.PortForward.Local.aml" />
-    <None Include="Documentation\Content\Guide\Guide.PortForward.Remote.aml" />
-    <None Include="Documentation\Content\Guide\Guide.SFtp.aml" />
-    <None Include="Documentation\Content\HowTo.Connect.aml" />
-    <None Include="Documentation\Content\Reference.aml" />
-    <None Include="Documentation\Renci.SshClient.content" />
+    <None Include="Documentation\Renci.SshNet.content" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Documentation\SshClient.shfbproj" />
+    <Content Include="Documentation\SshNet.shfbproj" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -41,18 +41,12 @@ namespace Renci.SshNet.Channels
 
         }
 
-        /// <summary>
-        /// Binds channel to specified remote host.
-        /// </summary>
-        /// <param name="remoteHost">The remote host.</param>
-        /// <param name="port">The port.</param>
-        /// <param name="socket">The socket.</param>
-        public void Bind(string remoteHost, uint port, Socket socket)
+        public void Open(string remoteHost, uint port, Socket socket)
         {
             this._socket = socket;
 
             IPEndPoint ep = socket.RemoteEndPoint as IPEndPoint;
-            
+
 
             if (!this.IsConnected)
             {
@@ -65,76 +59,91 @@ namespace Renci.SshNet.Channels
 
             //  Wait for channel to open
             this.WaitHandle(this._channelOpen);
+        }
+
+        /// <summary>
+        /// Binds channel to remote host.
+        /// </summary>
+        public void Bind()
+        {
+            //  Cannot bind if channel is not open
+            if (!this.IsOpen)
+                return;
 
             //  Start reading data from the port and send to channel
-            EventWaitHandle readerTaskError = new AutoResetEvent(false);
-
-            var readerTaskCompleted = new ManualResetEvent(false);
             Exception exception = null;
 
-            this.ExecuteThread(() =>
+            try
             {
-                try
+                var buffer = new byte[this.PacketSize - 9];
+
+                while (this._socket != null && this._socket.CanRead())
                 {
-                    var buffer = new byte[this.PacketSize - 9];
-
-                    while (this._socket.Connected || this.IsConnected)
+                    try
                     {
-                        try
+                        var read = 0;
+                        this.InternalSocketReceive(buffer, ref read);
+                        if (read > 0)
                         {
-
-                            var read = 0;
-                            this.InternalSocketReceive(buffer, ref read);
-                            if (read > 0)
-                            {
-                                this.SendMessage(new ChannelDataMessage(this.RemoteChannelNumber, buffer.Take(read).ToArray()));
-                            }
-                            else
-                            {
-                                break;
-                            }
+                            this.SendMessage(new ChannelDataMessage(this.RemoteChannelNumber, buffer.Take(read).ToArray()));
                         }
-                        catch (SocketException exp)
+                        else
                         {
-                            if (exp.SocketErrorCode == SocketError.WouldBlock ||
-                                exp.SocketErrorCode == SocketError.IOPending ||
-                                exp.SocketErrorCode == SocketError.NoBufferSpaceAvailable)
-                            {
-                                // socket buffer is probably empty, wait and try again
-                                Thread.Sleep(30);
-                            }
-                            else if (exp.SocketErrorCode == SocketError.ConnectionAborted)
-                            {
-                                break;
-                            }
-                            else
-                                throw;  // throw any other error
+                            break;
                         }
                     }
+                    catch (SocketException exp)
+                    {
+                        if (exp.SocketErrorCode == SocketError.WouldBlock ||
+                            exp.SocketErrorCode == SocketError.IOPending ||
+                            exp.SocketErrorCode == SocketError.NoBufferSpaceAvailable)
+                        {
+                            // socket buffer is probably empty, wait and try again
+                            Thread.Sleep(30);
+                        }
+                        else if (exp.SocketErrorCode == SocketError.ConnectionAborted || exp.SocketErrorCode == SocketError.ConnectionReset)
+                        {
+                            break;
+                        }
+                        else
+                            throw;  // throw any other error
+                    }
                 }
-                catch (Exception exp)
-                {
-                    readerTaskError.Set();
-                    exception = exp;
-                }
-                finally
-                {
-                    readerTaskCompleted.Set();
-                }
-            });
+            }
+            catch (Exception exp)
+            {
+                exception = exp;
+            }
 
             //  Channel was open and we MUST receive EOF notification, 
             //  data transfer can take longer then connection specified timeout
-            System.Threading.WaitHandle.WaitAny(new WaitHandle[] { this._channelEof, readerTaskError });
+            //  If listener thread is finished then socket was closed
+            System.Threading.WaitHandle.WaitAny(new WaitHandle[] { this._channelEof });
 
-            this._socket.Dispose();
-            this._socket = null;
-
-            //  Wait for task to finish and will throw any errors if any
-            readerTaskCompleted.WaitOne();
+            //  Close socket if still open
+            if (this._socket != null)
+            {
+                this._socket.Dispose();
+                this._socket = null;
+            }
 
             if (exception != null)
                 throw exception;
+        }
+
+        public override void Close()
+        {
+            //  Close socket if still open
+            if (this._socket != null)
+            {
+                this._socket.Dispose();
+                this._socket = null;
+            }
+
+            //  Send EOF message first when channel need to be closed
+            this.SendMessage(new ChannelEofMessage(this.RemoteChannelNumber));
+
+            base.Close();
         }
 
         /// <summary>
@@ -161,6 +170,13 @@ namespace Renci.SshNet.Channels
             this._channelOpen.Set();
         }
 
+        protected override void OnOpenFailure(uint reasonCode, string description, string language)
+        {
+            base.OnOpenFailure(reasonCode, description, language);
+
+            this._channelOpen.Set();
+        }
+
         /// <summary>
         /// Called when channel has no more data to receive.
         /// </summary>
@@ -168,6 +184,29 @@ namespace Renci.SshNet.Channels
         {
             base.OnEof();
 
+            this._channelEof.Set();
+        }
+
+        protected override void OnClose()
+        {
+            base.OnClose();
+
+            this._channelEof.Set();
+        }
+
+        protected override void OnErrorOccured(Exception exp)
+        {
+            base.OnErrorOccured(exp);
+
+            //  If error occured, no more data can be received
+            this._channelEof.Set();
+        }
+
+        protected override void OnDisconnected()
+        {
+            base.OnDisconnected();
+
+            //  If disconnected, no more data can be received
             this._channelEof.Set();
         }
 
