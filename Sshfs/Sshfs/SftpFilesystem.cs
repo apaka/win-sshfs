@@ -463,7 +463,7 @@ namespace Sshfs
                 {
                     var stream = (info.Context as SftpContext).Stream;
                     int written = 0;
-                    int chunk = 8192;//maximum is payload 32768-X, optimum?
+                    int chunk = 16384;//maximum is payload 32768-X, optimum? 16384=1.5, 8192=1.9, 4092=2.3, 2048=2.3(5.8), 1024=2.35
                     lock (stream)
                     {
                         while (written < buffer.Length)
