@@ -462,10 +462,23 @@ namespace Sshfs
                 else
                 {
                     var stream = (info.Context as SftpContext).Stream;
+                    int written = 0;
+                    int chunk = 8192;//maximum is payload 32768-X, optimum?
                     lock (stream)
                     {
-                        stream.Position = offset;
-                        stream.Write(buffer, 0, buffer.Length);
+                        while (written < buffer.Length)
+                        {
+                            int writecount = buffer.Length - written;
+                            if (writecount > chunk) writecount = chunk;
+                            stream.Position = offset + written;
+                            stream.Write(buffer, written, writecount);
+                            written += writecount;
+                        }
+
+                        //stream.Position = offset;
+                        //stream.Write(buffer, 0, buffer.Length);
+
+
                     }
                     //    stream.Flush();
                     bytesWritten = buffer.Length;
