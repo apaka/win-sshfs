@@ -6,3 +6,6 @@ obj
 _ReSharper*
 # mstest test results
 TestResults
+/sharpshell
+
+/Sshfs/Sshfs/publish
