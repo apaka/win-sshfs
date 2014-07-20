@@ -36,7 +36,7 @@ using System;
 [assembly: AssemblyFileVersion("2013.4.7")]
 [assembly: AssemblyInformationalVersion("2013.4.7")]
 [assembly: CLSCompliant(false)]
-[assembly: InternalsVisibleTo("Renci.SshNet.Tests")]
+//[assembly: InternalsVisibleTo("Renci.SshNet.Tests")]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else

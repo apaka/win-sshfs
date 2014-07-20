@@ -47,7 +47,7 @@ namespace Sshfs
         {
 
           
-            notifyIcon.Text = Text = String.Format("Sshfs Manager {0}", Assembly.GetEntryAssembly().GetName().Version);
+            notifyIcon.Text = Text = String.Format("Sshfs Manager - 4every1 edition - v. {0}", Assembly.GetEntryAssembly().GetName().Version);
             portBox.Minimum = IPEndPoint.MinPort;
             portBox.Maximum = IPEndPoint.MaxPort;
 
@@ -268,7 +268,12 @@ namespace Sshfs
                 hostBox.Text = drive.Host;
                 portBox.Value = drive.Port;
                 userBox.Text = drive.Username;
-                authCombo.SelectedIndex = drive.ConnectionType == ConnectionType.Password ? 0 : 1;
+                switch (drive.ConnectionType)
+                {
+                    case ConnectionType.Pageant: authCombo.SelectedIndex = 2; break;
+                    case ConnectionType.PrivateKey: authCombo.SelectedIndex = 1; break;
+                    default: authCombo.SelectedIndex=0; break;
+                }
                 letterBox.BeginUpdate();
 
                 letterBox.Items.Clear();
@@ -331,7 +336,11 @@ namespace Sshfs
             drive.Host = hostBox.Text;
             drive.Port = (int) portBox.Value;
             drive.Username = userBox.Text;
-            drive.ConnectionType = authCombo.SelectedIndex == 0 ? ConnectionType.Password : ConnectionType.PrivateKey;
+            switch (authCombo.SelectedIndex){
+                case 2: drive.ConnectionType = ConnectionType.Pageant; break;
+                case 1: drive.ConnectionType = ConnectionType.PrivateKey; break;
+                default: drive.ConnectionType = ConnectionType.Password; break;
+            }
             drive.Letter = letterBox.Text[0];
             drive.Root = directoryBox.Text.Trim();
             drive.Automount = mountCheck.Checked;

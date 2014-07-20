@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 using DokanNet;
 using Renci.SshNet;
 using Sshfs.Properties;
+using Renci.SshNet.Pageant;
 #endregion
 
 namespace Sshfs
@@ -98,9 +99,20 @@ namespace Sshfs
         {
             Debug.WriteLine("SetupFilesystem");
 
-            var info = ConnectionType == ConnectionType.Password
-                                      ? (ConnectionInfo) new PasswordConnectionInfo(Host, Port, Username, Password)
-                                      : new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
+            ConnectionInfo info;
+            switch (ConnectionType)
+            {
+                case ConnectionType.Pageant:
+                    var agent = new PageantProtocol();
+                    info = new AgentConnectionInfo(Host, Port, Username, agent);
+                    break;
+                case ConnectionType.PrivateKey:
+                    info = new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
+                    break;
+                default:
+                    info = new PasswordConnectionInfo(Host, Port, Username, Password);
+                    break;
+            }
 
             _connection = Settings.Default.UseNetworkDrive ? String.Format("\\\\{0}\\{1}\\{2}", info.Host, Root, info.Username) : Name;
 

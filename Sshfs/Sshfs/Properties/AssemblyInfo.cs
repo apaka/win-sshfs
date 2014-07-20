@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Sshfs")]
+[assembly: AssemblyTitle("WinSshFS 4every1 edition")]
 [assembly: AssemblyDescription("SFTP Filesystem for Windows ™")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Dragan Mladjenovic")]
-[assembly: AssemblyProduct("Sshfs")]
-[assembly: AssemblyCopyright("Copyright © Dragan Mladjenovic 2012")]
+[assembly: AssemblyCompany("4every1 s.r.o.")]
+[assembly: AssemblyProduct("WinSshFS 4every1 edition")]
+[assembly: AssemblyCopyright("Copyright © 4every1 s.r.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.0.1.5")]
-[assembly: AssemblyFileVersion("0.0.1.5")]
+[assembly: AssemblyVersion("0.1.5.5")]
+[assembly: AssemblyFileVersion("0.1.5.5")]
