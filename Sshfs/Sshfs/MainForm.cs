@@ -47,7 +47,7 @@ namespace Sshfs
         {
 
           
-            notifyIcon.Text = Text = String.Format("Sshfs Manager {0}", Assembly.GetEntryAssembly().GetName().Version);
+            notifyIcon.Text = Text = String.Format("Sshfs Manager - 4every1 edition - v. {0}", Assembly.GetEntryAssembly().GetName().Version);
             portBox.Minimum = IPEndPoint.MinPort;
             portBox.Maximum = IPEndPoint.MaxPort;
 

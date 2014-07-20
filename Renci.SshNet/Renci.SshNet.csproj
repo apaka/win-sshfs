@@ -33,10 +33,10 @@
     <DocumentationFile>bin\Release\Renci.SshNet.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
+    <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>renci_4every1.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>sshfs_4every1.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -466,6 +466,7 @@
   <ItemGroup>
     <None Include="Documentation\Renci.SshNet.content" />
     <None Include="renci_4every1.pfx" />
+    <None Include="sshfs_4every1.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Documentation\SshNet.shfbproj" />
