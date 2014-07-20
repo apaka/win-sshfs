@@ -18,17 +18,18 @@ namespace Sshfs
 {
     internal static class Utilities
     {
-        private static readonly IsolatedStorageFile _userStoreForAssembly =
-            IsolatedStorageFile.GetUserStoreForAssembly();
-
+        private static readonly DirectoryInfo datadir = Directory.CreateDirectory(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\WinSshFS"
+            );
 
         public static void Load<T>(this List<T> list, string file) where T : ISerializable
         {
-            if (!_userStoreForAssembly.FileExists(file)) return;
+            string filepath = datadir.FullName+"\\"+file;
+            if (!File.Exists(filepath)) return;
 
             var xmlSerializer = new DataContractSerializer(typeof(IEnumerable<T>));
             using (
-                var stream = _userStoreForAssembly.OpenFile(file, FileMode.OpenOrCreate,
+                var stream = File.Open(filepath, FileMode.OpenOrCreate,
                                                             FileAccess.Read))
             {
                 list.Clear();
@@ -40,15 +41,16 @@ namespace Sshfs
         public static void Presist<T>(this List<T> list, string file, bool delete = false) where T : ISerializable
 
         {
+            string filepath = datadir.FullName + "\\" + file;
             if (delete)
             {
-                _userStoreForAssembly.DeleteFile(file);
+                File.Delete(filepath);
             }
             else
             {
                 var xmlSerializer = new DataContractSerializer(typeof (List<T>));
                 using (
-                    var stream = _userStoreForAssembly.OpenFile(file, FileMode.Create,
+                    var stream = File.Open(filepath, FileMode.Create,
                                                                 FileAccess.Write))
                 {
                     xmlSerializer.WriteObject(stream, list);
