@@ -15,6 +15,7 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 using Renci.SshNet;
 using Sshfs.Properties;
+using System.Threading;
 
 #endregion
 
@@ -422,6 +423,7 @@ namespace Sshfs
             foreach (var drive in _drives.Where(d => d.Automount))
             {
                 MountDrive(drive);
+                Thread.Sleep(100);//pokus
             }
             if (_drives.Count != 0 && _drives[0].Automount)
                 muButton.Enabled = false;

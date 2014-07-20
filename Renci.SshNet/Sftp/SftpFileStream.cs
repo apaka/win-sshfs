@@ -189,13 +189,13 @@ namespace Renci.SshNet.Sftp
         public TimeSpan Timeout { get; set; }
 
         internal SftpFileStream(SftpSession session, string path, FileMode mode)
-            : this(session, path, mode, FileAccess.ReadWrite, 4096, false)
+            : this(session, path, mode, FileAccess.ReadWrite, 65536, false)
         {
             // Nothing to do here.
         }
 
         internal SftpFileStream(SftpSession session, string path, FileMode mode, FileAccess access)
-            : this(session, path, mode, access, 4096, false)
+            : this(session, path, mode, access, 65536, false)
         {
             // Nothing to do here.
         }
@@ -216,7 +216,7 @@ namespace Renci.SshNet.Sftp
             {
                 throw new ArgumentNullException("path");
             }
-            if (bufferSize <= 0 || bufferSize > 16 * 1024)
+            if (bufferSize <= 0 || bufferSize > 64 * 1024)
             {
                 throw new ArgumentOutOfRangeException("bufferSize");
             }
