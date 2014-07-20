@@ -402,6 +402,7 @@ namespace Sshfs
             else
             {
                 drive.Unmount();
+                muButton.Enabled = false;
             }
         }
 
@@ -423,7 +424,11 @@ namespace Sshfs
             foreach (var drive in _drives.Where(d => d.Automount))
             {
                 MountDrive(drive);
-                Thread.Sleep(100);//pokus
+                //no parallel mounting on startup fix:
+                while (drive.Status == DriveStatus.Mounting)
+                {
+                    Thread.Sleep(100);
+                }
             }
             if (_drives.Count != 0 && _drives[0].Automount)
                 muButton.Enabled = false;

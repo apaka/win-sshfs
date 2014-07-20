@@ -204,7 +204,7 @@ namespace Sshfs
                            Directory.GetLogicalDrives().All(
                                drive => drive[0] != Letter))
                     {
-                        Thread.Sleep(1000);
+                        Thread.Sleep(200);
                     }
                 }, _mountCancel.Token);
 
