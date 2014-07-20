@@ -290,7 +290,22 @@ namespace Sshfs
             }
             catch (SshException) // Don't have access rights or try to read broken symlink
             {
-              
+                var ownerpath = path.Substring(0, path.LastIndexOf('/'));
+                var sftpPathAttributes = _cache.Get(ownerpath) as SftpFileAttributes;
+
+                if (sftpPathAttributes == null)
+                {
+                    Log("cache miss");
+
+                    sftpPathAttributes = GetAttributes(ownerpath);
+                    if (sftpPathAttributes != null)
+                        _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    else
+                    {
+                        Log("Up directory must be created");
+                        return DokanError.ErrorPathNotFound;
+                    }
+                }
                 return DokanError.ErrorAccessDenied;
             }
 
