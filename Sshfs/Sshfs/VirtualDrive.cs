@@ -41,12 +41,12 @@ namespace Sshfs
         public VirtualDrive() { }
 
 
-        internal void AddSubFS(string path, SftpFilesystem fileSystem)
+        internal void AddSubFS(string path, SftpDrive fileSystem)
         {
             _filesystem.AddSubFS(path, fileSystem);
         }
 
-        internal void RemoveSubFS(string path, SftpFilesystem fileSystem)
+        internal void RemoveSubFS(string path, SftpDrive fileSystem)
         {
             _filesystem.RemoveSubFS(path, fileSystem);
         }

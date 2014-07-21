@@ -27,13 +27,20 @@ namespace Sshfs
         private readonly List<SftpDrive> _drives = new List<SftpDrive>();
         private readonly Regex _regex = new Regex(@"^New Drive\s\d{1,2}$", RegexOptions.Compiled);
         private readonly Queue<SftpDrive> _suspendedDrives = new Queue<SftpDrive>();
+
         private VirtualDrive virtualDrive;
+        //private char virtualDriveLetter;
+
         private bool _balloonTipVisible;
 
         private int _lastindex = -1;
         private int _namecount;
         private bool _suspend;
         private bool _dirty;
+
+        private bool _updateLockvirtualDriveBox = false;
+        private bool _updateLockLetterBox = false;
+        
 
         public MainForm()
         {
@@ -65,14 +72,13 @@ namespace Sshfs
 
             startupMenuItem.Checked = Utilities.IsAppRegistredForStarup();
 
-            // _drives.Presist("config.xml",true);
-
-
+            // _drives.Presist("config.xml",true);            
 
             virtualDrive = new VirtualDrive
             {
                 Letter = 'Z'
             };
+            updateVirtualDriveCombo();
             virtualDrive.Mount();
 
 
@@ -86,7 +92,8 @@ namespace Sshfs
                                          new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}) as ListViewItem);
                 _drives[i].StatusChanged += drive_StatusChanged;
                 if (_drives[i].Name.StartsWith("New Drive")) _namecount++;
-                _drives[i]._virtualDrive = virtualDrive;
+
+                virtualDrive.AddSubFS(_drives[i].Name, _drives[i]);
             }
 
 
@@ -112,6 +119,66 @@ namespace Sshfs
 
             SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
             base.OnLoad(e);
+        }
+
+        private void updateVirtualDriveCombo()
+        {
+            if (_updateLockvirtualDriveBox)
+                return;
+            this.virtualDriveCombo.BeginUpdate();
+
+            this.virtualDriveCombo.Items.Clear();
+
+            this.virtualDriveCombo.Items.Add(" Off");
+            this.virtualDriveCombo.Items.AddRange(
+                Utilities.GetAvailableDrives()
+                    .Except(_drives.Select(d => d.Letter))
+                    .Except(new char[] { virtualDrive.Letter })
+                    .Select(l => String.Format("{0} :", l))
+                    .ToArray()
+            );
+            if (virtualDrive.Letter!=' ')
+                this.virtualDriveCombo.Items.Add(String.Format("{0} :", virtualDrive.Letter));
+
+
+            this.virtualDriveCombo.SelectedIndex = this.virtualDriveCombo.FindString(virtualDrive.Letter.ToString());
+
+            this.virtualDriveCombo.EndUpdate();
+        }
+
+        private void updateLetterBoxCombo(SftpDrive drive)
+        {
+            if (_updateLockLetterBox)
+                return;
+            if (drive == null)
+            {
+                if (driveListView.SelectedItems.Count == 0)
+                    return;
+                drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+                if (drive == null)
+                    return;
+            }
+
+            letterBox.BeginUpdate();
+
+            letterBox.Items.Clear();
+
+            letterBox.Items.Add(" None");
+
+            letterBox.Items.AddRange(
+                Utilities.GetAvailableDrives()
+                    .Except(_drives.Select(d => d.Letter))
+                    .Except(new char[] {virtualDrive.Letter})
+                    .Select(l => String.Format("{0} :", l))
+                    .ToArray());
+
+                
+            if (drive.Letter!=' ')
+                letterBox.Items.Add(String.Format("{0} :", drive.Letter));
+                
+            letterBox.SelectedIndex = letterBox.FindString(drive.Letter.ToString());
+
+            letterBox.EndUpdate();
         }
 
 
@@ -184,8 +251,7 @@ namespace Sshfs
                                 Name = String.Format("New Drive {0}", ++_namecount),
                                 Port = 22,
                                 Root = ".",
-                                Letter = letter,
-                                _virtualDrive = virtualDrive
+                                Letter = letter
                             };
             drive.StatusChanged += drive_StatusChanged;
             _drives.Add(drive);
@@ -289,19 +355,8 @@ namespace Sshfs
                     case ConnectionType.PrivateKey: authCombo.SelectedIndex = 1; break;
                     default: authCombo.SelectedIndex=0; break;
                 }
-                letterBox.BeginUpdate();
 
-                letterBox.Items.Clear();
-
-                letterBox.Items.AddRange(
-                    Utilities.GetAvailableDrives().Except(_drives.Select(d => d.Letter)).Select(
-                        l => String.Format("{0} :", l)).ToArray());
-                letterBox.Items.Add(String.Format("{0} :", drive.Letter));
-
-
-                letterBox.SelectedIndex = letterBox.FindString(drive.Letter.ToString());
-
-                letterBox.EndUpdate();
+                updateLetterBoxCombo(drive);
 
                 passwordBox.Text = drive.Password;
                 directoryBox.Text = drive.Root;
@@ -614,6 +669,43 @@ namespace Sshfs
             if (driveListView.SelectedItems[0].Tag == drive)
                 muButton.Enabled = false;
             MountDrive(drive);
+        }
+
+        private void virtualDriveCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_updateLockvirtualDriveBox)
+                return;
+            _updateLockvirtualDriveBox = true; ;
+
+            if (virtualDrive.Letter != virtualDriveCombo.Text[0])
+            {
+                virtualDrive.Letter = virtualDriveCombo.Text[0];
+
+                //TODO: this shoud be in thread - blocks gui:
+                if (virtualDrive != null && (virtualDrive.Status == DriveStatus.Mounted))
+                    virtualDrive.Unmount();
+                
+                if (virtualDrive != null && virtualDrive.Letter != ' ')
+                {
+                    virtualDrive.Letter = virtualDrive.Letter;
+                    virtualDrive.Mount();
+                }
+            }
+
+            updateLetterBoxCombo(null);
+
+            _updateLockvirtualDriveBox = false;
+        }
+
+        private void letterBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            _updateLockLetterBox = true;
+
+            SftpDrive drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+            drive.Letter = letterBox.Text[0];
+            
+            this.updateVirtualDriveCombo();
+            _updateLockLetterBox = false;
         }
     }
 }

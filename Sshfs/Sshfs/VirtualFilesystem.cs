@@ -22,7 +22,7 @@ namespace Sshfs
         private readonly string _volumeLabel;
         private bool _debugMode = false;
 
-        private readonly Dictionary<string, SftpFilesystem> _subsytems = new Dictionary<string, SftpFilesystem>();
+        private readonly Dictionary<string, SftpDrive> _subsytems = new Dictionary<string, SftpDrive>();
 
         #endregion
 
@@ -37,12 +37,12 @@ namespace Sshfs
 
         #region  Methods
 
-        internal void AddSubFS(string path, SftpFilesystem fileSystem)
+        internal void AddSubFS(string path, SftpDrive fileSystem)
         {
             _subsytems.Add(path, fileSystem);
         }
 
-        internal void RemoveSubFS(string path, SftpFilesystem fileSystem)
+        internal void RemoveSubFS(string path, SftpDrive fileSystem)
         {
             _subsytems.Remove(path);
         }
@@ -106,13 +106,32 @@ namespace Sshfs
             return fileName;
         }
 
+        private IDokanOperations GetSubSystemOperations(string subid)
+        {
+            if (subid == null)
+                return null;
+            if (!this._subsytems.ContainsKey(subid))
+            {
+                Log("Drive subid no longer exists?");
+                return null;
+            }
+            SftpDrive subdrive = this._subsytems[subid];
+            
+            if (subdrive.Status != DriveStatus.Mounted){
+                subdrive.Mount();
+            }
+
+            SftpFilesystem subfs = subdrive._filesystem;
+            return ((IDokanOperations)subfs);
+        }
+
         DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
         {
             Log("VFS OpenDir:{0}", fileName);
-            string subfs;
-            string subfilename = GetSubSystemFileName(fileName, out subfs);
-            if (subfs != null)
-                return ((IDokanOperations)this._subsytems[subfs]).OpenDirectory(subfilename, info);
+            string subid;
+            string subfilename = GetSubSystemFileName(fileName, out subid);
+            if (subid != null)
+                return GetSubSystemOperations(subid).OpenDirectory(subfilename, info);
 
             if (fileName == "\\")
             {
@@ -175,11 +194,11 @@ namespace Sshfs
         {
             Log("FindFiles:{0}", fileName);
 
-            string subfs;
-            string subfilename = GetSubSystemFileName(fileName, out subfs);
-            if (subfs != null)
+            string subid;
+            string subfilename = GetSubSystemFileName(fileName, out subid);
+            if (subid != null)
             {
-                return ((IDokanOperations)this._subsytems[subfs]).FindFiles(subfilename, out files, info);
+                return GetSubSystemOperations(subid).FindFiles(subfilename, out files, info);
             }
             
             files = new List<FileInformation>();

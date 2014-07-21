@@ -42,8 +42,7 @@ namespace Sshfs
         private readonly AutoResetEvent _pauseEvent = new AutoResetEvent(false);
         private readonly CancellationTokenSource _threadCancel = new CancellationTokenSource();
         private bool _exeptionThrown;
-        private SftpFilesystem _filesystem;
-        public VirtualDrive _virtualDrive { get; set; }
+        internal SftpFilesystem _filesystem;
       
         private Exception _lastExeption;
         private Thread _mountThread;
@@ -150,10 +149,6 @@ namespace Sshfs
 
                 try
                 {
-                    //if (_virtualDrive.Status == DriveStatus.Mounted)
-                    if (_virtualDrive != null)
-                        _virtualDrive.AddSubFS("VFS-" + Letter, _filesystem);
-
                     int threadCount = 8;
 #if DEBUG
                 threadCount=1;
@@ -202,11 +197,11 @@ namespace Sshfs
                 Status = DriveStatus.Unmounted;
                 throw;
             }
-                
+
+            if (Letter != ' ')
+            {
                 SetupMountThread();
 
-                
-               
                 var mountEvent = Task.Factory.StartNew(() =>
                 {
                     while (!_mountCancel.IsCancellationRequested &&
@@ -217,20 +212,20 @@ namespace Sshfs
                     }
                 }, _mountCancel.Token);
 
-
                 _pauseEvent.Set();
 
                 mountEvent.Wait();
 
                 if (_exeptionThrown)
                 {
-                   
+
                     _exeptionThrown = false;
-    
+
                     throw _lastExeption;
                 }
-            if(Settings.Default.UseNetworkDrive)
-            Utilities.SetNetworkDriveName(_connection, Name);
+                if (Settings.Default.UseNetworkDrive)
+                    Utilities.SetNetworkDriveName(_connection, Name);
+            }
             Status= DriveStatus.Mounted;
             OnStatusChanged(EventArgs.Empty);
 
