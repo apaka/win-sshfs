@@ -43,6 +43,7 @@ namespace Sshfs
         private readonly CancellationTokenSource _threadCancel = new CancellationTokenSource();
         private bool _exeptionThrown;
         private SftpFilesystem _filesystem;
+        public VirtualDrive _virtualDrive { get; set; }
       
         private Exception _lastExeption;
         private Thread _mountThread;
@@ -149,6 +150,10 @@ namespace Sshfs
 
                 try
                 {
+                    //if (_virtualDrive.Status == DriveStatus.Mounted)
+                    if (_virtualDrive != null)
+                        _virtualDrive.AddSubFS("VFS-" + Letter, _filesystem);
+
                     int threadCount = 8;
 #if DEBUG
                 threadCount=1;

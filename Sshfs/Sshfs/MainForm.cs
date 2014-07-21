@@ -27,6 +27,7 @@ namespace Sshfs
         private readonly List<SftpDrive> _drives = new List<SftpDrive>();
         private readonly Regex _regex = new Regex(@"^New Drive\s\d{1,2}$", RegexOptions.Compiled);
         private readonly Queue<SftpDrive> _suspendedDrives = new Queue<SftpDrive>();
+        private VirtualDrive virtualDrive;
         private bool _balloonTipVisible;
 
         private int _lastindex = -1;
@@ -66,6 +67,15 @@ namespace Sshfs
 
             // _drives.Presist("config.xml",true);
 
+
+
+            virtualDrive = new VirtualDrive
+            {
+                Letter = 'Z'
+            };
+            virtualDrive.Mount();
+
+
             _drives.Load("config.xml");
 
 
@@ -76,6 +86,7 @@ namespace Sshfs
                                          new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}) as ListViewItem);
                 _drives[i].StatusChanged += drive_StatusChanged;
                 if (_drives[i].Name.StartsWith("New Drive")) _namecount++;
+                _drives[i]._virtualDrive = virtualDrive;
             }
 
 
@@ -95,6 +106,8 @@ namespace Sshfs
             }
 
             SetupPanels();
+
+            
 
 
             SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
@@ -171,7 +184,8 @@ namespace Sshfs
                                 Name = String.Format("New Drive {0}", ++_namecount),
                                 Port = 22,
                                 Root = ".",
-                                Letter = letter
+                                Letter = letter,
+                                _virtualDrive = virtualDrive
                             };
             drive.StatusChanged += drive_StatusChanged;
             _drives.Add(drive);
