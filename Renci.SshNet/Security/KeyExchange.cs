@@ -6,7 +6,6 @@ using Renci.SshNet.Common;
 using Renci.SshNet.Compression;
 using Renci.SshNet.Messages;
 using Renci.SshNet.Messages.Transport;
-using Renci.SshNet.Security.Cryptography.Ciphers;
 using Renci.SshNet.Security.Cryptography;
 
 namespace Renci.SshNet.Security
@@ -151,7 +150,7 @@ namespace Renci.SshNet.Security
             session.ConnectionInfo.CurrentServerCompressionAlgorithm = decompressionAlgorithmName;
 
             this._clientCipherInfo = session.ConnectionInfo.Encryptions[clientEncryptionAlgorithmName];
-            this._serverCipherInfo = session.ConnectionInfo.Encryptions[clientEncryptionAlgorithmName];
+            this._serverCipherInfo = session.ConnectionInfo.Encryptions[serverDecryptionAlgorithmName];
             this._clientHashInfo = session.ConnectionInfo.HmacAlgorithms[clientHmacAlgorithmName];
             this._serverHashInfo = session.ConnectionInfo.HmacAlgorithms[serverHmacAlgorithmName];
             this._compressionType = session.ConnectionInfo.CompressionAlgorithms[compressionAlgorithmName];
@@ -322,7 +321,7 @@ namespace Renci.SshNet.Security
         /// </returns>
         protected virtual byte[] Hash(byte[] hashData)
         {
-            using (var sha1 = new Renci.SshNet.Security.Cryptography.SHA1Hash())
+            using (var sha1 = new SHA1Hash())
             {
                 return sha1.ComputeHash(hashData, 0, hashData.Length);
             }

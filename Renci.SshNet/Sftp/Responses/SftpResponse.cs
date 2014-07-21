@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Renci.SshNet.Sftp.Responses
 {
-    public abstract class SftpResponse : SftpMessage
+    internal abstract class SftpResponse : SftpMessage
     {
         public uint ResponseId { get; private set; }
 

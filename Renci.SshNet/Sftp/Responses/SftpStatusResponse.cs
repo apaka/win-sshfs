@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Renci.SshNet.Sftp.Responses
+﻿namespace Renci.SshNet.Sftp.Responses
 {
-    public class SftpStatusResponse : SftpResponse
+    internal class SftpStatusResponse : SftpResponse
     {
         public override SftpMessageTypes SftpMessageType
         {

@@ -1,7 +1,7 @@
 ﻿
 namespace Renci.SshNet.Sftp
 {
-    public enum SftpMessageTypes : byte
+    internal enum SftpMessageTypes : byte
     {
         /// <summary>
         /// SSH_FXP_INIT

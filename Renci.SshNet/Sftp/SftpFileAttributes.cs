@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("WinSshFS, PublicKey=0024000004800000940000000602000000240000525341310004000001000100bb1df492d3d63bb4aedb73672b0c0694ad7838ea17c6d49685ef1a03301ae6de5a4b4b1795844de0ddab49254d05bd533b5a02c24a580346274b204b8975536ffe36b4e7bb8c82e419264c335682ad44861e99eef16e95ee978742064c9335283ecb6e2fd325ea97942a51a3fc1a7d9948dd919b0d4ad25148d5490cc37f85b4")]
 
 namespace Renci.SshNet.Sftp
 {
@@ -13,45 +15,45 @@ namespace Renci.SshNet.Sftp
     {
         #region Bitmask constats
 
-        private static UInt32 S_IFMT = 0xF000;  //  bitmask for the file type bitfields
+        private const UInt32 S_IFMT = 0xF000; //  bitmask for the file type bitfields
 
-        private static UInt32 S_IFSOCK = 0xC000;  //	socket
+        private const UInt32 S_IFSOCK = 0xC000; //	socket
 
-        private static UInt32 S_IFLNK = 0xA000;  //	symbolic link
+        private const UInt32 S_IFLNK = 0xA000; //	symbolic link
 
-        private static UInt32 S_IFREG = 0x8000;  //	regular file
+        private const UInt32 S_IFREG = 0x8000; //	regular file
 
-        private static UInt32 S_IFBLK = 0x6000;  //	block device
+        private const UInt32 S_IFBLK = 0x6000; //	block device
 
-        private static UInt32 S_IFDIR = 0x4000;  //	directory
+        private const UInt32 S_IFDIR = 0x4000; //	directory
 
-        private static UInt32 S_IFCHR = 0x2000;  //	character device
+        private const UInt32 S_IFCHR = 0x2000; //	character device
 
-        private static UInt32 S_IFIFO = 0x1000;  //	FIFO
+        private const UInt32 S_IFIFO = 0x1000; //	FIFO
 
-        private static UInt32 S_ISUID = 0x0800;  //	set UID bit
+        private const UInt32 S_ISUID = 0x0800; //	set UID bit
 
-        private static UInt32 S_ISGID = 0x0400;  //	set-group-ID bit (see below)
+        private const UInt32 S_ISGID = 0x0400; //	set-group-ID bit (see below)
 
-        private static UInt32 S_ISVTX = 0x0200;  //	sticky bit (see below)
+        private const UInt32 S_ISVTX = 0x0200; //	sticky bit (see below)
 
-        private static UInt32 S_IRUSR = 0x0100;  //	owner has read permission
+        private const UInt32 S_IRUSR = 0x0100; //	owner has read permission
 
-        private static UInt32 S_IWUSR = 0x0080;  //	owner has write permission
+        private const UInt32 S_IWUSR = 0x0080; //	owner has write permission
 
-        private static UInt32 S_IXUSR = 0x0040;  //	owner has execute permission
+        private const UInt32 S_IXUSR = 0x0040; //	owner has execute permission
 
-        private static UInt32 S_IRGRP = 0x0020;  //	group has read permission
+        private const UInt32 S_IRGRP = 0x0020; //	group has read permission
 
-        private static UInt32 S_IWGRP = 0x0010;  //	group has write permission
+        private const UInt32 S_IWGRP = 0x0010; //	group has write permission
 
-        private static UInt32 S_IXGRP = 0x0008;  //	group has execute permission
+        private const UInt32 S_IXGRP = 0x0008; //	group has execute permission
 
-        private static UInt32 S_IROTH = 0x0004;  //	others have read permission
+        private const UInt32 S_IROTH = 0x0004; //	others have read permission
 
-        private static UInt32 S_IWOTH = 0x0002;  //	others have write permission
+        private const UInt32 S_IWOTH = 0x0002; //	others have write permission
 
-        private static UInt32 S_IXOTH = 0x0001;  //	others have execute permission
+        private const UInt32 S_IXOTH = 0x0001; //	others have execute permission
 
         #endregion
 
@@ -60,13 +62,13 @@ namespace Renci.SshNet.Sftp
         private bool _isGroupIDBitSet;
         private bool _isStickyBitSet;
 
-        private DateTime _originalLastAccessTime;
-        private DateTime _originalLastWriteTime;
-        private long _originalSize;
-        private int _originalUserId;
-        private int _originalGroupId;
-        private uint _originalPermissions;
-        private IDictionary<string, string> _originalExtensions;
+        private readonly DateTime _originalLastAccessTime;
+        private readonly DateTime _originalLastWriteTime;
+        private readonly long _originalSize;
+        private readonly int _originalUserId;
+        private readonly int _originalGroupId;
+        private readonly uint _originalPermissions;
+        private readonly IDictionary<string, string> _originalExtensions;
 
         internal bool IsLastAccessTimeChanged
         {
@@ -395,7 +397,7 @@ namespace Renci.SshNet.Sftp
         {
         }
 
-        public SftpFileAttributes(DateTime lastAccessTime, DateTime lastWriteTime, long size, int userId, int groupId, uint permissions, IDictionary<string, string> extensions)
+        internal SftpFileAttributes(DateTime lastAccessTime, DateTime lastWriteTime, long size, int userId, int groupId, uint permissions, IDictionary<string, string> extensions)
         {
             this.LastAccessTime = this._originalLastAccessTime = lastAccessTime;
             this.LastWriteTime = this._originalLastWriteTime = lastWriteTime;

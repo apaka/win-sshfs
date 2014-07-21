@@ -5,8 +5,6 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Renci.SshNet.Security;
-using System.Security.Cryptography;
-using System.Security;
 using Renci.SshNet.Common;
 using System.Globalization;
 using Renci.SshNet.Security.Cryptography;
@@ -26,9 +24,9 @@ namespace Renci.SshNet
     public class PrivateKeyFile : IDisposable
     {
 #if SILVERLIGHT
-		private static Regex _privateKeyRegex = new Regex(@"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n(Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)-+ *END \k<keyName> PRIVATE KEY *-+", RegexOptions.Multiline);
+        private static readonly Regex _privateKeyRegex = new Regex(@"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n(Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)-+ *END \k<keyName> PRIVATE KEY *-+", RegexOptions.Multiline);
 #else
-        private static Regex _privateKeyRegex = new Regex(@"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n(Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)-+ *END \k<keyName> PRIVATE KEY *-+", RegexOptions.Compiled | RegexOptions.Multiline);
+        private static readonly Regex _privateKeyRegex = new Regex(@"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n(Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)-+ *END \k<keyName> PRIVATE KEY *-+", RegexOptions.Compiled | RegexOptions.Multiline);
 #endif
 
         private Key _key;
@@ -54,14 +52,8 @@ namespace Renci.SshNet
         /// <exception cref="ArgumentNullException"><paramref name="fileName"/> is null or empty.</exception>
         /// <remarks>This method calls <see cref="System.IO.File.Open(string, System.IO.FileMode)"/> internally, this method does not catch exceptions from <see cref="System.IO.File.Open(string, System.IO.FileMode)"/>.</remarks>
         public PrivateKeyFile(string fileName)
+            : this(fileName, null)
         {
-            if (string.IsNullOrEmpty(fileName))
-                throw new ArgumentNullException("fileName");
-
-            using (var keyFile = File.Open(fileName, FileMode.Open))
-            {
-                this.Open(keyFile, null);
-            }
         }
 
         /// <summary>
@@ -76,17 +68,9 @@ namespace Renci.SshNet
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentNullException("fileName");
 
-            using (var keyFile = File.Open(fileName, FileMode.Open))
+            using (var keyFile = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 this.Open(keyFile, passPhrase);
-            }
-        }
-
-        public static bool IsValid(string privateKey)
-        {
-            using (var sr = new StreamReader(privateKey))
-            {
-                return _privateKeyRegex.Match(sr.ReadToEnd()).Success;
             }
         }
 
@@ -112,9 +96,9 @@ namespace Renci.SshNet
             if (privateKey == null)
                 throw new ArgumentNullException("privateKey");
 
-            Match privateKeyMatch = null;
+            Match privateKeyMatch;
 
-            using (StreamReader sr = new StreamReader(privateKey))
+            using (var sr = new StreamReader(privateKey))
             {
                 var text = sr.ReadToEnd();
                 privateKeyMatch = _privateKeyRegex.Match(text);
@@ -130,39 +114,39 @@ namespace Renci.SshNet
             var salt = privateKeyMatch.Result("${salt}");
             var data = privateKeyMatch.Result("${data}");
 
-            var binaryData = System.Convert.FromBase64String(data);
+            var binaryData = Convert.FromBase64String(data);
 
-            byte[] decryptedData = null;
+            byte[] decryptedData;
 
             if (!string.IsNullOrEmpty(cipherName) && !string.IsNullOrEmpty(salt))
             {
                 if (string.IsNullOrEmpty(passPhrase))
                     throw new SshPassPhraseNullOrEmptyException("Private key is encrypted but passphrase is empty.");
 
-                byte[] binarySalt = new byte[salt.Length / 2];
-                for (int i = 0; i < binarySalt.Length; i++)
+                var binarySalt = new byte[salt.Length / 2];
+                for (var i = 0; i < binarySalt.Length; i++)
                     binarySalt[i] = Convert.ToByte(salt.Substring(i * 2, 2), 16);
 
-                CipherInfo cipher = null;
+                CipherInfo cipher;
                 switch (cipherName)
                 {
                     case "DES-EDE3-CBC":
-                        cipher = new CipherInfo(192, (key, iv) => { return new TripleDesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(192, (key, iv) => new TripleDesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()));
                         break;
                     case "DES-EDE3-CFB":
-                        cipher = new CipherInfo(192, (key, iv) => { return new TripleDesCipher(key, new CfbCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(192, (key, iv) => new TripleDesCipher(key, new CfbCipherMode(iv), new PKCS7Padding()));
                         break;
                     case "DES-CBC":
-                        cipher = new CipherInfo(64, (key, iv) => { return new DesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(64, (key, iv) => new DesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()));
                         break;
                     case "AES-128-CBC":
-                        cipher = new CipherInfo(128, (key, iv) => { return new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(128, (key, iv) => new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()));
                         break;
                     case "AES-192-CBC":
-                        cipher = new CipherInfo(192, (key, iv) => { return new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(192, (key, iv) => new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()));
                         break;
                     case "AES-256-CBC":
-                        cipher = new CipherInfo(256, (key, iv) => { return new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()); });
+                        cipher = new CipherInfo(256, (key, iv) => new AesCipher(key, new CbcCipherMode(iv), new PKCS7Padding()));
                         break;
                     default:
                         throw new SshException(string.Format(CultureInfo.CurrentCulture, "Private key cipher \"{0}\" is not supported.", cipherName));
@@ -198,7 +182,7 @@ namespace Renci.SshNet
                     var ssh2CipherName = reader.ReadString();
                     var blobSize = (int)reader.ReadUInt32();
 
-                    byte[] keyData = null;
+                    byte[] keyData;
                     if (ssh2CipherName == "none")
                     {
                         keyData = reader.ReadBytes(blobSize);
@@ -335,7 +319,7 @@ namespace Renci.SshNet
 
         #region IDisposable Members
 
-        private bool _isDisposed = false;
+        private bool _isDisposed;
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged ResourceMessages.

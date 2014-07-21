@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Security.Cryptography;
 using Renci.SshNet.Common;
-using System.Globalization;
 
 namespace Renci.SshNet.Security.Cryptography
 {
@@ -15,7 +12,7 @@ namespace Renci.SshNet.Security.Cryptography
     {
         private HashAlgorithm _hash;
 
-        private DsaKey _key;
+        private readonly DsaKey _key;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DsaDigitalSignature" /> class.
@@ -103,8 +100,8 @@ namespace Renci.SshNet.Security.Cryptography
 
             BigInteger m = new BigInteger(hashInput.Reverse().Concat(new byte[] { 0 }).ToArray());
 
-            BigInteger s = BigInteger.Zero;
-            BigInteger r = BigInteger.Zero;
+            BigInteger s;
+            BigInteger r;
 
             do
             {
@@ -139,12 +136,22 @@ namespace Renci.SshNet.Security.Cryptography
             } while (s.IsZero);
 
             //  The signature is (r, s)
-            return r.ToByteArray().Reverse().TrimLeadingZero().Concat(s.ToByteArray().Reverse().TrimLeadingZero()).ToArray();
+            var signature = new byte[40];
+
+            // issue #1918: pad part with zero's on the left if length is less than 20
+            var rBytes = r.ToByteArray().Reverse().TrimLeadingZero().ToArray();
+            Array.Copy(rBytes, 0, signature, 20 - rBytes.Length, rBytes.Length);
+
+            // issue #1918: pad part with zero's on the left if length is less than 20
+            var sBytes = s.ToByteArray().Reverse().TrimLeadingZero().ToArray();
+            Array.Copy(sBytes, 0, signature, 40 - sBytes.Length, sBytes.Length);
+
+            return signature;
         }
-        
+
         #region IDisposable Members
 
-        private bool _isDisposed = false;
+        private bool _isDisposed;
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged ResourceMessages.
@@ -195,6 +202,5 @@ namespace Renci.SshNet.Security.Cryptography
         }
 
         #endregion
-
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Renci.SshNet.Sftp
 {
-    public enum Flags
+    internal enum Flags
     {
         None = 0x00000000,
         /// <summary>

@@ -11,14 +11,11 @@ namespace Renci.SshNet.Channels
     /// <summary>
     /// Implements "direct-tcpip" SSH channel.
     /// </summary>
-    internal partial class ChannelDirectTcpip : Channel
+    internal partial class ChannelDirectTcpip : ClientChannel
     {
-        public EventWaitHandle _channelEof = new AutoResetEvent(false);
-
+        private EventWaitHandle _channelEof = new AutoResetEvent(false);
         private EventWaitHandle _channelOpen = new AutoResetEvent(false);
-
         private EventWaitHandle _channelData = new AutoResetEvent(false);
-
         private Socket _socket;
 
         /// <summary>
@@ -36,17 +33,14 @@ namespace Renci.SshNet.Channels
         /// Initializes a new instance of the <see cref="ChannelDirectTcpip"/> class.
         /// </summary>
         public ChannelDirectTcpip()
-            : base()
         {
-
         }
 
         public void Open(string remoteHost, uint port, Socket socket)
         {
             this._socket = socket;
 
-            IPEndPoint ep = socket.RemoteEndPoint as IPEndPoint;
-
+            var ep = socket.RemoteEndPoint as IPEndPoint;
 
             if (!this.IsConnected)
             {
@@ -54,11 +48,11 @@ namespace Renci.SshNet.Channels
             }
 
             //  Open channel
-            this.SendMessage(new ChannelOpenMessage(this.LocalChannelNumber, this.LocalWindowSize, this.PacketSize,
+            this.SendMessage(new ChannelOpenMessage(this.LocalChannelNumber, this.LocalWindowSize, this.LocalPacketSize,
                                                         new DirectTcpipChannelInfo(remoteHost, port, ep.Address.ToString(), (uint)ep.Port)));
 
             //  Wait for channel to open
-            this.WaitHandle(this._channelOpen);
+            this.WaitOnHandle(this._channelOpen);
         }
 
         /// <summary>
@@ -75,7 +69,7 @@ namespace Renci.SshNet.Channels
 
             try
             {
-                var buffer = new byte[this.PacketSize - 9];
+                var buffer = new byte[this.RemotePacketSize];
 
                 while (this._socket != null && this._socket.CanRead())
                 {
@@ -115,10 +109,10 @@ namespace Renci.SshNet.Channels
                 exception = exp;
             }
 
-            //  Channel was open and we MUST receive EOF notification, 
-            //  data transfer can take longer then connection specified timeout
+            //  Channel was open and we MUST receive EOF notification,
+            //  data transfer can take longer than connection specified timeout
             //  If listener thread is finished then socket was closed
-            System.Threading.WaitHandle.WaitAny(new WaitHandle[] { this._channelEof });
+            WaitHandle.WaitAny(new WaitHandle[] {_channelEof});
 
             //  Close socket if still open
             if (this._socket != null)
@@ -180,18 +174,21 @@ namespace Renci.SshNet.Channels
         /// <summary>
         /// Called when channel has no more data to receive.
         /// </summary>
-        protected override void OnEof()
-        {
-            base.OnEof();
+        protected override void OnEof() {
+	        base.OnEof();
 
-            this._channelEof.Set();
+            var channelEof = this._channelEof;
+            if (channelEof != null)
+                channelEof.Set();
         }
 
         protected override void OnClose()
         {
             base.OnClose();
 
-            this._channelEof.Set();
+            var channelEof = this._channelEof;
+            if (channelEof != null)
+                channelEof.Set();
         }
 
         protected override void OnErrorOccured(Exception exp)
@@ -199,7 +196,9 @@ namespace Renci.SshNet.Channels
             base.OnErrorOccured(exp);
 
             //  If error occured, no more data can be received
-            this._channelEof.Set();
+            var channelEof = this._channelEof;
+            if (channelEof != null)
+                channelEof.Set();
         }
 
         protected override void OnDisconnected()
@@ -207,7 +206,9 @@ namespace Renci.SshNet.Channels
             base.OnDisconnected();
 
             //  If disconnected, no more data can be received
-            this._channelEof.Set();
+            var channelEof = this._channelEof;
+            if (channelEof != null)
+                channelEof.Set();
         }
 
         partial void ExecuteThread(Action action);

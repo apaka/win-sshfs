@@ -10,30 +10,32 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Renci.SshNet</RootNamespace>
     <AssemblyName>Renci.SshNet</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>0</WarningLevel>
+    <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\Renci.SshNet.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\Renci.SshNet.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -65,6 +67,8 @@
     <Compile Include="Channels\ChannelForwardedTcpip.NET40.cs" />
     <Compile Include="Channels\ChannelSession.cs" />
     <Compile Include="Channels\ChannelTypes.cs" />
+    <Compile Include="Channels\ClientChannel.cs" />
+    <Compile Include="Channels\ServerChannel.cs" />
     <Compile Include="CipherInfo.cs" />
     <Compile Include="Common\ASCIIEncoding.cs" />
     <Compile Include="Common\AsyncResult.cs" />
@@ -78,6 +82,7 @@
     </Compile>
     <Compile Include="Common\ChannelDataEventArgs.cs" />
     <Compile Include="Common\ChannelEventArgs.cs" />
+    <Compile Include="Common\ChannelOpenConfirmedEventArgs.cs" />
     <Compile Include="Common\ChannelOpenFailedEventArgs.cs" />
     <Compile Include="Common\ChannelRequestEventArgs.cs" />
     <Compile Include="Common\Extensions.NET.cs" />
@@ -148,9 +153,9 @@
     <Compile Include="IdentityReference.cs" />
     <Compile Include="Messages\Transport\KeyExchangeEcdhInitMessage.cs" />
     <Compile Include="Messages\Transport\KeyExchangeEcdhReplyMessage.cs" />
-    <Compile Include="Pageant\COPYDATASTRUCT.cs" />
-    <Compile Include="Pageant\NativeMethods.cs" />
-    <Compile Include="Pageant\PageantProtocol.cs" />
+    <Compile Include="Pageantx\COPYDATASTRUCT.cs" />
+    <Compile Include="Pageantx\NativeMethods.cs" />
+    <Compile Include="Pageantx\PageantProtocol.cs" />
     <Compile Include="Security\Cryptography\Hashes\RIPEMD160Hash.cs" />
     <Compile Include="Security\Cryptography\Hashes\SHA2HashBase.cs">
       <SubType>Code</SubType>
@@ -298,6 +303,7 @@
     <Compile Include="Netconf\NetConfSession.cs" />
     <Compile Include="PrivateKeyFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\CommonAssemblyInfo.cs" />
     <Compile Include="Security\Algorithm.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -343,7 +349,7 @@
     <Compile Include="Security\Cryptography\Hashes\SHA256Hash.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Security\Cryptography\HMac.cs">
+    <Compile Include="Security\Cryptography\HMAC.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Security\Cryptography\Key.cs">
@@ -468,7 +474,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Documentation\Renci.SshNet.content" />
-    <None Include="renci_4every1.pfx" />
     <None Include="sshfs_4every1.pfx" />
   </ItemGroup>
   <ItemGroup>

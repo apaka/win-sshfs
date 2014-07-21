@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Renci.SshNet.Security;
 using Renci.SshNet.Messages.Connection;
-using System.Security.Cryptography;
 using Renci.SshNet.Common;
 using Renci.SshNet.Messages.Authentication;
 using Renci.SshNet.Security.Cryptography;
 using Renci.SshNet.Security.Cryptography.Ciphers.Modes;
 using Renci.SshNet.Security.Cryptography.Ciphers;
-using System.Collections.ObjectModel;
-using System.Net;
-using Renci.SshNet.Compression;
 
 namespace Renci.SshNet
 {
     /// <summary>
     /// Represents remote connection information class.
     /// </summary>
+    /// <remarks>
+    /// This class is NOT thread-safe. Do not use the same <see cref="ConnectionInfo"/> with multiple
+    /// client instances.
+    /// </remarks>
     public class ConnectionInfo
     {
         internal static int DEFAULT_PORT = 22;
@@ -62,7 +63,7 @@ namespace Renci.SshNet
         /// Gets a value indicating whether connection is authenticated.
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if connection is authenticated; otherwise, <c>false</c>.
+        /// <c>true</c> if connection is authenticated; otherwise, <c>false</c>.
         /// </value>
         public bool IsAuthenticated { get; private set; }
 
@@ -74,6 +75,9 @@ namespace Renci.SshNet
         /// <summary>
         /// Gets connection port.
         /// </summary>
+        /// <value>
+        /// The connection port. The default value is 22.
+        /// </value>
         public int Port { get; private set; }
 
         /// <summary>
@@ -113,7 +117,7 @@ namespace Renci.SshNet
         /// Gets or sets connection timeout.
         /// </summary>
         /// <value>
-        /// Connection timeout.
+        /// The connection timeout. The default value is 30 seconds.
         /// </value>
         /// <example>
         ///   <code source="..\..\Renci.SshNet.Tests\Classes\SshClientTest.cs" region="Example SshClient Connect Timeout" language="C#" title="Specify connection timeout" />
@@ -121,10 +125,10 @@ namespace Renci.SshNet
         public TimeSpan Timeout { get; set; }
 
         /// <summary>
-        /// Gets or sets the default encoding.
+        /// Gets or sets the character encoding.
         /// </summary>
         /// <value>
-        /// The default encoding.
+        /// The character encoding. The default is <see cref="System.Text.Encoding.UTF8"/>.
         /// </value>
         public Encoding Encoding { get; set; }
 
@@ -132,7 +136,8 @@ namespace Renci.SshNet
         /// Gets or sets number of retry attempts when session channel creation failed.
         /// </summary>
         /// <value>
-        /// Number of retry attempts.
+        /// The number of retry attempts when session channel creation failed. The default
+        /// value is 10.
         /// </value>
         public int RetryAttempts { get; set; }
 
@@ -140,7 +145,8 @@ namespace Renci.SshNet
         /// Gets or sets maximum number of session channels to be open simultaneously.
         /// </summary>
         /// <value>
-        /// The max sessions.
+        /// The maximum number of session channels to be open simultaneously. The default
+        /// value is 10.
         /// </value>
         public int MaxSessions { get; set; }
 
@@ -384,64 +390,93 @@ namespace Renci.SshNet
         /// Authenticates the specified session.
         /// </summary>
         /// <param name="session">The session to be authenticated.</param>
-        /// <returns>true if authenticated; otherwise false.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is null.</exception>
-        /// <exception cref="SshAuthenticationException">No suitable authentication method found to complete authentication.</exception>
-        public bool Authenticate(Session session)
+        /// <exception cref="SshAuthenticationException">No suitable authentication method found to complete authentication, or permission denied.</exception>
+        public void Authenticate(Session session)
         {
-            var authenticated = AuthenticationResult.Failure;
-
             if (session == null)
                 throw new ArgumentNullException("session");
 
             session.RegisterMessage("SSH_MSG_USERAUTH_FAILURE");
             session.RegisterMessage("SSH_MSG_USERAUTH_SUCCESS");
             session.RegisterMessage("SSH_MSG_USERAUTH_BANNER");
-
             session.UserAuthenticationBannerReceived += Session_UserAuthenticationBannerReceived;
 
-            //  Try to authenticate against none
-            var noneAuthenticationMethod = new NoneAuthenticationMethod(this.Username);
-
-            authenticated = noneAuthenticationMethod.Authenticate(session);
-
-            var allowedAuthentications = noneAuthenticationMethod.AllowedAuthentications;
-
-            var triedAuthentications = new List<string>();
-            while (authenticated != AuthenticationResult.Success)
+            try
             {
-                // Find first authentication method
-                var method = this.AuthenticationMethods.Where((a) => allowedAuthentications.Contains(a.Name) && !triedAuthentications.Contains(a.Name)).FirstOrDefault();
-                if (method == null)
-                    throw new SshAuthenticationException("No suitable authentication method found to complete authentication.");
+                // the exception to report an authentication failure with
+                SshAuthenticationException authenticationException = null;
 
-                triedAuthentications.Add(method.Name);
+                // try to authenticate against none
+                var noneAuthenticationMethod = new NoneAuthenticationMethod(this.Username);
 
-                authenticated = method.Authenticate(session);
-
-                if (authenticated == AuthenticationResult.PartialSuccess || (method.AllowedAuthentications != null && method.AllowedAuthentications.Count() < allowedAuthentications.Count()))
+                var authenticated = noneAuthenticationMethod.Authenticate(session);
+                if (authenticated != AuthenticationResult.Success)
                 {
-                    // If further authentication is required then continue to try another method
-                    allowedAuthentications = method.AllowedAuthentications;
-                    continue;
+                    var failedAuthenticationMethods = new List<AuthenticationMethod>();
+                    if (TryAuthenticate(session, noneAuthenticationMethod.AllowedAuthentications.ToList(), failedAuthenticationMethods, ref authenticationException))
+                    {
+                        authenticated = AuthenticationResult.Success;
+                    }
                 }
 
-                // If authentication Fail, and all the authentication have been tried.
-                if (authenticated == AuthenticationResult.Failure && (triedAuthentications.Count() == allowedAuthentications.Count()))
-                {
-                    break;
-                }
+                this.IsAuthenticated = authenticated == AuthenticationResult.Success;
+                if (!IsAuthenticated)
+                    throw authenticationException;
+            }
+            finally
+            {
+                session.UserAuthenticationBannerReceived -= Session_UserAuthenticationBannerReceived;
+                session.UnRegisterMessage("SSH_MSG_USERAUTH_FAILURE");
+                session.UnRegisterMessage("SSH_MSG_USERAUTH_SUCCESS");
+                session.UnRegisterMessage("SSH_MSG_USERAUTH_BANNER");
+            }
+        }
+
+        private bool TryAuthenticate(Session session, IList<string> allowedAuthenticationMethods, IList<AuthenticationMethod> failedAuthenticationMethods, ref SshAuthenticationException authenticationException)
+        {
+            if (!allowedAuthenticationMethods.Any())
+            {
+                authenticationException = new SshAuthenticationException("No authentication methods defined on SSH server.");
+                return false;
             }
 
-            session.UserAuthenticationBannerReceived -= Session_UserAuthenticationBannerReceived;
+            // we want to try authentication methods in the order in which they were
+            //  passed in the ctor, not the order in which the SSH server returns
+            // the allowed authentication methods
+            var matchingAuthenticationMethods = AuthenticationMethods.Where(a => allowedAuthenticationMethods.Contains(a.Name)).ToList();
+            if (!matchingAuthenticationMethods.Any())
+            {
+                authenticationException = new SshAuthenticationException(string.Format("No suitable authentication method found to complete authentication ({0}).", string.Join(",", allowedAuthenticationMethods.ToArray())));
+                return false;
+            }
 
-            session.UnRegisterMessage("SSH_MSG_USERAUTH_FAILURE");
-            session.UnRegisterMessage("SSH_MSG_USERAUTH_SUCCESS");
-            session.UnRegisterMessage("SSH_MSG_USERAUTH_BANNER");
+            foreach (var authenticationMethod in matchingAuthenticationMethods)
+            {
+                if (failedAuthenticationMethods.Contains(authenticationMethod))
+                    continue;
 
-            this.IsAuthenticated = authenticated == AuthenticationResult.Success;
+                var authenticationResult = authenticationMethod.Authenticate(session);
+                switch (authenticationResult)
+                {
+                    case AuthenticationResult.PartialSuccess:
+                        if (TryAuthenticate(session, authenticationMethod.AllowedAuthentications.ToList(), failedAuthenticationMethods, ref authenticationException))
+                            authenticationResult = AuthenticationResult.Success;
+                        break;
+                    case AuthenticationResult.Failure:
+                        failedAuthenticationMethods.Add(authenticationMethod);
+                        authenticationException = new SshAuthenticationException(string.Format("Permission denied ({0}).", authenticationMethod.Name));
+                        break;
+                    case AuthenticationResult.Success:
+                        authenticationException = null;
+                        break;
+                }
 
-            return authenticated == AuthenticationResult.Success;
+                if (authenticationResult == AuthenticationResult.Success)
+                    return true;
+            }
+
+            return false;
         }
 
         private void Session_UserAuthenticationBannerReceived(object sender, MessageEventArgs<BannerMessage> e)

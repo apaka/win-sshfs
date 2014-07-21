@@ -1,31 +1,32 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using Renci.SshNet.Channels;
 using Renci.SshNet.Common;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Globalization;
 using Renci.SshNet.Sftp.Responses;
 using Renci.SshNet.Sftp.Requests;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("WinSshFS, PublicKey=0024000004800000940000000602000000240000525341310004000001000100bb1df492d3d63bb4aedb73672b0c0694ad7838ea17c6d49685ef1a03301ae6de5a4b4b1795844de0ddab49254d05bd533b5a02c24a580346274b204b8975536ffe36b4e7bb8c82e419264c335682ad44861e99eef16e95ee978742064c9335283ecb6e2fd325ea97942a51a3fc1a7d9948dd919b0d4ad25148d5490cc37f85b4")]
 
 namespace Renci.SshNet.Sftp
 {
-    public class SftpSession : SubsystemSession
+    internal class SftpSession : SubsystemSession
     {
         private const int MAXIMUM_SUPPORTED_VERSION = 3;
 
         private const int MINIMUM_SUPPORTED_VERSION = 0;
 
-        private Dictionary<uint, SftpRequest> _requests = new Dictionary<uint, SftpRequest>();
+        private readonly Dictionary<uint, SftpRequest> _requests = new Dictionary<uint, SftpRequest>();
 
-        private List<byte> _data = new List<byte>(16 * 1024);
+        private readonly List<byte> _data = new List<byte>(16 * 1024);
 
         private EventWaitHandle _sftpVersionConfirmed = new AutoResetEvent(false);
 
-        public IDictionary<string, string> _supportedExtensions;
+        internal IDictionary<string, string> _supportedExtensions;
 
         /// <summary>
         /// Gets remote working directory.
@@ -132,13 +133,11 @@ namespace Renci.SshNet.Sftp
             {
                 return fullPath;
             }
-            else
-            {
-                var slash = string.Empty;
-                if (canonizedPath[canonizedPath.Length - 1] != '/')
-                    slash = "/";
-                return string.Format(CultureInfo.InvariantCulture, "{0}{1}{2}", canonizedPath, slash, pathParts[pathParts.Length - 1]);
-            }
+
+            var slash = string.Empty;
+            if (canonizedPath[canonizedPath.Length - 1] != '/')
+                slash = "/";
+            return string.Format(CultureInfo.InvariantCulture, "{0}{1}{2}", canonizedPath, slash, pathParts[pathParts.Length - 1]);
         }
 
         internal string GetFullRemotePath(string path)
@@ -163,7 +162,7 @@ namespace Renci.SshNet.Sftp
         {
             this.SendMessage(new SftpInitRequest(MAXIMUM_SUPPORTED_VERSION));
 
-            this.WaitHandle(this._sftpVersionConfirmed, this._operationTimeout);
+            this.WaitOnHandle(this._sftpVersionConfirmed, this._operationTimeout);
 
             if (this.ProtocolVersion > MAXIMUM_SUPPORTED_VERSION || this.ProtocolVersion < MINIMUM_SUPPORTED_VERSION)
             {
@@ -260,7 +259,7 @@ namespace Renci.SshNet.Sftp
         /// <param name="flags">The flags.</param>
         /// <param name="nullOnError">if set to <c>true</c> returns null instead of throwing an exception.</param>
         /// <returns>File handle.</returns>
-        public byte[] RequestOpen(string path, Flags flags, bool nullOnError = false)
+        internal byte[] RequestOpen(string path, Flags flags, bool nullOnError = false)
         {
             byte[] handle = null;
             SshException exception = null;
@@ -268,12 +267,12 @@ namespace Renci.SshNet.Sftp
             using (var wait = new AutoResetEvent(false))
             {
                 var request = new SftpOpenRequest(this.ProtocolVersion, this.NextRequestId, path, this.Encoding, flags,
-                    (response) =>
+                    response =>
                     {
                         handle = response.Handle;
                         wait.Set();
                     },
-                    (response) =>
+                    response =>
                     {
                         exception = this.GetSftpException(response);
                         wait.Set();
@@ -281,7 +280,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -296,7 +295,7 @@ namespace Renci.SshNet.Sftp
         /// Performs SSH_FXP_CLOSE request.
         /// </summary>
         /// <param name="handle">The handle.</param>
-        public void RequestClose(byte[] handle)
+        internal void RequestClose(byte[] handle)
         {
             SshException exception = null;
 
@@ -311,7 +310,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -327,11 +326,11 @@ namespace Renci.SshNet.Sftp
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns>data array; null if EOF</returns>
-        public byte[] RequestRead(byte[] handle, UInt64 offset, UInt32 length)
+        internal byte[] RequestRead(byte[] handle, UInt64 offset, UInt32 length)
         {
             SshException exception = null;
 
-            byte[] data = new byte[0];
+            var data = new byte[0];
 
             using (var wait = new AutoResetEvent(false))
             {
@@ -352,7 +351,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -370,7 +369,8 @@ namespace Renci.SshNet.Sftp
         /// <param name="offset">The offset.</param>
         /// <param name="data">The data to send.</param>
         /// <param name="wait">The wait event handle if needed.</param>
-        public void RequestWrite(byte[] handle, UInt64 offset, byte[] data, EventWaitHandle wait, Action<SftpStatusResponse> writeCompleted = null)
+        /// <param name="writeCompleted">The callback to invoke when the write has completed.</param>
+        internal void RequestWrite(byte[] handle, UInt64 offset, byte[] data, EventWaitHandle wait, Action<SftpStatusResponse> writeCompleted = null)
         {
             SshException exception = null;
 
@@ -390,7 +390,7 @@ namespace Renci.SshNet.Sftp
             this.SendRequest(request);
 
             if (wait != null)
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
 
             if (exception != null)
             {
@@ -406,7 +406,7 @@ namespace Renci.SshNet.Sftp
         /// <returns>
         /// File attributes
         /// </returns>
-        public SftpFileAttributes RequestLStat(string path, bool nullOnError = false)
+        internal SftpFileAttributes RequestLStat(string path, bool nullOnError = false)
         {
             SshException exception = null;
 
@@ -427,10 +427,10 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
-            if (!nullOnError && exception != null)
+            if (exception != null)
             {
                 throw exception;
             }
@@ -446,7 +446,7 @@ namespace Renci.SshNet.Sftp
         /// <returns>
         /// File attributes
         /// </returns>
-        public SftpFileAttributes RequestFStat(byte[] handle, bool nullOnError = false)
+        internal SftpFileAttributes RequestFStat(byte[] handle, bool nullOnError = false)
         {
             SshException exception = null;
             SftpFileAttributes attributes = null;
@@ -467,10 +467,10 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
-            if (!nullOnError && exception != null)
+            if (exception != null)
             {
                 throw exception;
             }
@@ -483,7 +483,7 @@ namespace Renci.SshNet.Sftp
         /// </summary>
         /// <param name="path">The path.</param>
         /// <param name="attributes">The attributes.</param>
-        public void RequestSetStat(string path, SftpFileAttributes attributes)
+        internal void RequestSetStat(string path, SftpFileAttributes attributes)
         {
             SshException exception = null;
 
@@ -498,7 +498,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -512,7 +512,7 @@ namespace Renci.SshNet.Sftp
         /// </summary>
         /// <param name="handle">The handle.</param>
         /// <param name="attributes">The attributes.</param>
-        public void RequestFSetStat(byte[] handle, SftpFileAttributes attributes)
+        internal void RequestFSetStat(byte[] handle, SftpFileAttributes attributes)
         {
             SshException exception = null;
 
@@ -527,7 +527,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -542,7 +542,7 @@ namespace Renci.SshNet.Sftp
         /// <param name="path">The path.</param>
         /// <param name="nullOnError">if set to <c>true</c> returns null instead of throwing an exception.</param>
         /// <returns>File handle.</returns>
-        public byte[] RequestOpenDir(string path, bool nullOnError = false)
+        internal byte[] RequestOpenDir(string path, bool nullOnError = false)
         {
             SshException exception = null;
 
@@ -564,7 +564,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -580,7 +580,7 @@ namespace Renci.SshNet.Sftp
         /// </summary>
         /// <param name="handle">The handle.</param>
         /// <returns></returns>
-        public KeyValuePair<string, SftpFileAttributes>[] RequestReadDir(byte[] handle)
+        internal KeyValuePair<string, SftpFileAttributes>[] RequestReadDir(byte[] handle)
         {
             SshException exception = null;
 
@@ -605,7 +605,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -620,7 +620,7 @@ namespace Renci.SshNet.Sftp
         /// Performs SSH_FXP_REMOVE request.
         /// </summary>
         /// <param name="path">The path.</param>
-        public void RequestRemove(string path)
+        internal void RequestRemove(string path)
         {
             SshException exception = null;
 
@@ -635,7 +635,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -648,7 +648,7 @@ namespace Renci.SshNet.Sftp
         /// Performs SSH_FXP_MKDIR request.
         /// </summary>
         /// <param name="path">The path.</param>
-        public void RequestMkDir(string path)
+        internal void RequestMkDir(string path)
         {
             SshException exception = null;
 
@@ -663,7 +663,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -676,7 +676,7 @@ namespace Renci.SshNet.Sftp
         /// Performs SSH_FXP_RMDIR request.
         /// </summary>
         /// <param name="path">The path.</param>
-        public void RequestRmDir(string path)
+        internal void RequestRmDir(string path)
         {
             SshException exception = null;
 
@@ -691,7 +691,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -706,7 +706,7 @@ namespace Renci.SshNet.Sftp
         /// <param name="path">The path.</param>
         /// <param name="nullOnError">if set to <c>true</c> returns null instead of throwing an exception.</param>
         /// <returns></returns>
-        public KeyValuePair<string, SftpFileAttributes>[] RequestRealPath(string path, bool nullOnError = false)
+        internal KeyValuePair<string, SftpFileAttributes>[] RequestRealPath(string path, bool nullOnError = false)
         {
             SshException exception = null;
 
@@ -728,7 +728,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -747,7 +747,7 @@ namespace Renci.SshNet.Sftp
         /// <returns>
         /// File attributes
         /// </returns>
-        public SftpFileAttributes RequestStat(string path, bool nullOnError = false)
+        internal SftpFileAttributes RequestStat(string path, bool nullOnError = false)
         {
             SshException exception = null;
 
@@ -769,7 +769,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -785,7 +785,7 @@ namespace Renci.SshNet.Sftp
         /// </summary>
         /// <param name="oldPath">The old path.</param>
         /// <param name="newPath">The new path.</param>
-        public void RequestRename(string oldPath, string newPath)
+        internal void RequestRename(string oldPath, string newPath)
         {
             if (this.ProtocolVersion < 2)
             {
@@ -805,7 +805,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -848,7 +848,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -884,7 +884,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -902,7 +902,7 @@ namespace Renci.SshNet.Sftp
         /// </summary>
         /// <param name="oldPath">The old path.</param>
         /// <param name="newPath">The new path.</param>
-        public void RequestPosixRename(string oldPath, string newPath)
+        internal void RequestPosixRename(string oldPath, string newPath)
         {
             if (this.ProtocolVersion < 3)
             {
@@ -925,7 +925,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -940,7 +940,7 @@ namespace Renci.SshNet.Sftp
         /// <param name="path">The path.</param>
         /// <param name="nullOnError">if set to <c>true</c> [null on error].</param>
         /// <returns></returns>
-        public SftpFileSytemInformation RequestStatVfs(string path, bool nullOnError = false)
+        internal SftpFileSytemInformation RequestStatVfs(string path, bool nullOnError = false)
         {
             if (this.ProtocolVersion < 3)
             {
@@ -971,7 +971,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (!nullOnError && exception != null)
@@ -1020,7 +1020,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
             
             if (!nullOnError && exception != null)
@@ -1059,7 +1059,7 @@ namespace Renci.SshNet.Sftp
 
                 this.SendRequest(request);
 
-                this.WaitHandle(wait, this._operationTimeout);
+                this.WaitOnHandle(wait, this._operationTimeout);
             }
 
             if (exception != null)
@@ -1069,6 +1069,57 @@ namespace Renci.SshNet.Sftp
         }
 
         #endregion
+
+        /// <summary>
+        /// Calculates the optimal size of the buffer to read data from the channel.
+        /// </summary>
+        /// <param name="bufferSize">The buffer size configured on the client.</param>
+        /// <returns>
+        /// The optimal size of the buffer to read data from the channel.
+        /// </returns>
+        internal uint CalculateOptimalReadLength(uint bufferSize)
+        {
+            // a SSH_FXP_DATA message has 13 bytes of protocol fields:
+            // bytes 1 to 4: packet length
+            // byte 5: message type
+            // bytes 6 to 9: response id
+            // bytes 10 to 13: length of payload‏
+            //
+            // most ssh servers limit the size of the payload of a SSH_MSG_CHANNEL_DATA
+            // response to 16 KB; if we requested 16 KB of data, then the SSH_FXP_DATA
+            // payload of the SSH_MSG_CHANNEL_DATA message would be too big (16 KB + 13 bytes), and
+            // as a result, the ssh server would split this into two responses:
+            // one containing 16384 bytes (13 bytes header, and 16371 bytes file data)
+            // and one with the remaining 13 bytes of file data
+            const uint lengthOfNonDataProtocolFields = 13u;
+            var maximumPacketSize = Channel.LocalPacketSize;
+            return Math.Min(bufferSize, maximumPacketSize) - lengthOfNonDataProtocolFields;
+        }
+
+        /// <summary>
+        /// Calculates the optimal size of the buffer to write data on the channel.
+        /// </summary>
+        /// <param name="bufferSize">The buffer size configured on the client.</param>
+        /// <param name="handle">The file handle.</param>
+        /// <returns>
+        /// The optimal size of the buffer to write data on the channel.
+        /// </returns>
+        /// <remarks>
+        /// Currently, we do not take the remote window size into account.
+        /// </remarks>
+        internal uint CalculateOptimalWriteLength(uint bufferSize, byte[] handle)
+        {
+            // 1-4: package length of SSH_FXP_WRITE message
+            // 5: message type
+            // 6-9: request id
+            // 10-13: handle length
+            // <handle>
+            // 14-21: offset
+            // 22-25: data length
+            var lengthOfNonDataProtocolFields = 25u + (uint)handle.Length;
+            var maximumPacketSize = Channel.RemotePacketSize;
+            return Math.Min(bufferSize, maximumPacketSize) - lengthOfNonDataProtocolFields;
+        }
 
         private SshException GetSftpException(SftpStatusResponse response)
         {
@@ -1092,7 +1143,7 @@ namespace Renci.SshNet.Sftp
 
         private void HandleResponse(SftpResponse response)
         {
-            SftpRequest request = null;
+            SftpRequest request;
             lock (this._requests)
             {
                 this._requests.TryGetValue(response.ResponseId, out request);

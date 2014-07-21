@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Renci.SshNet.Channels;
 using System.IO;
 using Renci.SshNet.Common;
-using Renci.SshNet.Messages.Connection;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Renci.SshNet
@@ -18,26 +15,24 @@ namespace Renci.SshNet
     /// </summary>
     public partial class ScpClient : BaseClient
     {
-        private static Regex _fileInfoRe = new Regex(@"C(?<mode>\d{4}) (?<length>\d+) (?<filename>.+)");
-
-        private static Regex _directoryInfoRe = new Regex(@"D(?<mode>\d{4}) (?<length>\d+) (?<filename>.+)");
-
-        private static Regex _timestampRe = new Regex(@"T(?<mtime>\d+) 0 (?<atime>\d+) 0");
-
+        private static readonly Regex _fileInfoRe = new Regex(@"C(?<mode>\d{4}) (?<length>\d+) (?<filename>.+)");
         private static char[] _byteToChar;
-
-        private bool _disposeConnectionInfo;
 
         /// <summary>
         /// Gets or sets the operation timeout.
         /// </summary>
-        /// <value>The operation timeout.</value>
+        /// <value>
+        /// The timeout to wait until an operation completes. The default value is negative
+        /// one (-1) milliseconds, which indicates an infinite time-out period.
+        /// </value>
         public TimeSpan OperationTimeout { get; set; }
 
         /// <summary>
         /// Gets or sets the size of the buffer.
         /// </summary>
-        /// <value>The size of the buffer.</value>
+        /// <value>
+        /// The size of the buffer. The default buffer size is 16384 bytes.
+        /// </value>
         public uint BufferSize { get; set; }
 
         /// <summary>
@@ -58,21 +53,8 @@ namespace Renci.SshNet
         /// <param name="connectionInfo">The connection info.</param>
         /// <exception cref="ArgumentNullException"><paramref name="connectionInfo"/> is null.</exception>
         public ScpClient(ConnectionInfo connectionInfo)
-            : base(connectionInfo)
+            : this(connectionInfo, false)
         {
-            this.OperationTimeout = new TimeSpan(0, 0, 0, 0, -1);
-            this.BufferSize = 1024 * 16;
-
-            if (_byteToChar == null)
-            {
-                _byteToChar = new char[128];
-                var ch = '\0';
-                for (int i = 0; i < 128; i++)
-                {
-                    _byteToChar[i] = ch++;
-                }
-            }
-
         }
 
         /// <summary>
@@ -87,9 +69,8 @@ namespace Renci.SshNet
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is not within <see cref="F:System.Net.IPEndPoint.MinPort"/> and <see cref="System.Net.IPEndPoint.MaxPort"/>.</exception>
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope", Justification = "Disposed in Dispose(bool) method.")]
         public ScpClient(string host, int port, string username, string password)
-            : this(new PasswordConnectionInfo(host, port, username, password))
+            : this(new PasswordConnectionInfo(host, port, username, password), true)
         {
-            this._disposeConnectionInfo = true;
         }
 
         /// <summary>
@@ -117,9 +98,8 @@ namespace Renci.SshNet
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is not within <see cref="F:System.Net.IPEndPoint.MinPort"/> and <see cref="System.Net.IPEndPoint.MaxPort"/>.</exception>
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope", Justification = "Disposed in Dispose(bool) method.")]
         public ScpClient(string host, int port, string username, params PrivateKeyFile[] keyFiles)
-            : this(new PrivateKeyConnectionInfo(host, port, username, keyFiles))
+            : this(new PrivateKeyConnectionInfo(host, port, username, keyFiles), true)
         {
-            this._disposeConnectionInfo = true;
         }
 
         /// <summary>
@@ -135,19 +115,46 @@ namespace Renci.SshNet
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScpClient"/> class.
+        /// </summary>
+        /// <param name="connectionInfo">The connection info.</param>
+        /// <param name="ownsConnectionInfo">Specified whether this instance owns the connection info.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="connectionInfo"/> is null.</exception>
+        /// <remarks>
+        /// If <paramref name="ownsConnectionInfo"/> is <c>true</c>, then the
+        /// connection info will be disposed when this instance is disposed.
+        /// </remarks>
+        private ScpClient(ConnectionInfo connectionInfo, bool ownsConnectionInfo)
+            : base(connectionInfo, ownsConnectionInfo)
+        {
+            this.OperationTimeout = new TimeSpan(0, 0, 0, 0, -1);
+            this.BufferSize = 1024 * 16;
+
+            if (_byteToChar == null)
+            {
+                _byteToChar = new char[128];
+                var ch = '\0';
+                for (int i = 0; i < 128; i++)
+                {
+                    _byteToChar[i] = ch++;
+                }
+            }
+        }
+
         #endregion
 
         /// <summary>
         /// Uploads the specified stream to the remote host.
         /// </summary>
         /// <param name="source">Stream to upload.</param>
-        /// <param name="filename">Remote host file name.</param>
+        /// <param name="path">Remote host file name.</param>
         public void Upload(Stream source, string path)
         {
             using (var input = new PipeStream())
-            using (var channel = this.Session.CreateChannel<ChannelSession>())
+            using (var channel = this.Session.CreateClientChannel<ChannelSession>())
             {
-                channel.DataReceived += delegate(object sender, Common.ChannelDataEventArgs e)
+                channel.DataReceived += delegate(object sender, ChannelDataEventArgs e)
                 {
                     input.Write(e.Data, 0, e.Data.Length);
                     input.Flush();
@@ -155,28 +162,20 @@ namespace Renci.SshNet
 
                 channel.Open();
 
-                var pathParts = path.Split('\\', '/');
-
-                //  Send channel command request
-                channel.SendExecRequest(string.Format("scp -rt \"{0}\"", pathParts[0]));
-                this.CheckReturnCode(input);
-
-                //  Prepare directory structure
-                for (int i = 0; i < pathParts.Length - 1; i++)
+                int pathEnd = path.LastIndexOfAny(new[] { '\\', '/' });
+                if (pathEnd != -1)
                 {
-                    this.InternalSetTimestamp(channel, input, DateTime.UtcNow, DateTime.UtcNow);
-                    this.SendData(channel, string.Format("D0755 0 {0}\n", pathParts[i]));
+                    // split the path from the file
+                    string pathOnly = path.Substring(0, pathEnd);
+                    string fileOnly = path.Substring(pathEnd + 1);
+                    //  Send channel command request
+                    channel.SendExecRequest(string.Format("scp -t \"{0}\"", pathOnly));
                     this.CheckReturnCode(input);
+
+                    path = fileOnly;
                 }
 
-                this.InternalUpload(channel, input, source, pathParts.Last());
-
-                //  Finish directory structure
-                for (int i = 0; i < pathParts.Length - 1; i++)
-                {
-                    this.SendData(channel, "E\n");
-                    this.CheckReturnCode(input);
-                }
+                this.InternalUpload(channel, input, source, path);
 
                 channel.Close();
             }
@@ -199,9 +198,9 @@ namespace Renci.SshNet
                 throw new ArgumentNullException("destination");
 
             using (var input = new PipeStream())
-            using (var channel = this.Session.CreateChannel<ChannelSession>())
+            using (var channel = this.Session.CreateClientChannel<ChannelSession>())
             {
-                channel.DataReceived += delegate(object sender, Common.ChannelDataEventArgs e)
+                channel.DataReceived += delegate(object sender, ChannelDataEventArgs e)
                 {
                     input.Write(e.Data, 0, e.Data.Length);
                     input.Flush();
@@ -323,7 +322,7 @@ namespace Renci.SshNet
 
         private void SendConfirmation(ChannelSession channel, byte errorCode, string message)
         {
-            this.SendData(channel, new byte[] { errorCode });
+            this.SendData(channel, new[] { errorCode });
             this.SendData(channel, string.Format("{0}\n", message));
         }
 
@@ -379,7 +378,7 @@ namespace Renci.SshNet
         {
             var hasError = false;
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             var b = ReadByte(stream);
 
@@ -404,18 +403,6 @@ namespace Renci.SshNet
                 throw new ScpException(sb.ToString());
 
             return sb.ToString();
-        }
-
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources
-        /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged ResourceMessages.</param>
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (this._disposeConnectionInfo)
-                ((IDisposable)this.ConnectionInfo).Dispose();
         }
     }
 }

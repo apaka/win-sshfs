@@ -3,7 +3,6 @@ using System.Threading;
 using Renci.SshNet.Channels;
 using Renci.SshNet.Messages.Connection;
 using Renci.SshNet.Common;
-using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 
@@ -67,19 +66,18 @@ namespace Renci.SshNet
         /// <param name="boundPort">The bound port.</param>
         /// <param name="hostAddress">The host address.</param>
         /// <param name="port">The port.</param>
-        /// <exception cref="System.ArgumentNullException">boundHost</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">boundPort</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="boundHostAddress"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="hostAddress"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="boundPort"/> is not a valid port.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is not a valid port.</exception>
         public ForwardedPortRemote(IPAddress boundHostAddress, uint boundPort, IPAddress hostAddress, uint port)
         {
             if (boundHostAddress == null)
-                throw new ArgumentNullException("boundHost");
-
+                throw new ArgumentNullException("boundHostAddress");
             if (hostAddress == null)
-                throw new ArgumentNullException("host");
-
+                throw new ArgumentNullException("hostAddress");
             if (!boundPort.IsValidPort())
                 throw new ArgumentOutOfRangeException("boundPort");
-
             if (!port.IsValidPort())
                 throw new ArgumentOutOfRangeException("port");
 
@@ -111,7 +109,7 @@ namespace Renci.SshNet
             //  Send global request to start direct tcpip
             this.Session.SendMessage(new GlobalRequestMessage(GlobalRequestName.TcpIpForward, true, this.BoundHost, this.BoundPort));
 
-            this.Session.WaitHandle(this._globalRequestResponse);
+            this.Session.WaitOnHandle(this._globalRequestResponse);
 
             if (!this._requestStatus)
             {
@@ -120,10 +118,7 @@ namespace Renci.SshNet
 
                 throw new SshException(string.Format(CultureInfo.CurrentCulture, "Port forwarding for '{0}' port '{1}' failed to start.", this.Host, this.Port));
             }
-            else
-            {
-                this.IsStarted = true;
-            }
+            this.IsStarted = true;
         }
 
         /// <summary>
@@ -140,7 +135,7 @@ namespace Renci.SshNet
             //  Send global request to cancel direct tcpip
             this.Session.SendMessage(new GlobalRequestMessage(GlobalRequestName.CancelTcpIpForward, true, this.BoundHost, this.BoundPort));
 
-            this.Session.WaitHandle(this._globalRequestResponse);
+            this.Session.WaitOnHandle(this._globalRequestResponse);
 
             this.Session.RequestSuccessReceived -= Session_RequestSuccess;
             this.Session.RequestFailureReceived -= Session_RequestFailure;
@@ -151,10 +146,11 @@ namespace Renci.SshNet
 
         private void Session_ChannelOpening(object sender, MessageEventArgs<ChannelOpenMessage> e)
         {
-            //  Ensure that this is corresponding request
-            var info = e.Message.Info as ForwardedTcpipChannelInfo;
+            var channelOpenMessage = e.Message;
+            var info = channelOpenMessage.Info as ForwardedTcpipChannelInfo;
             if (info != null)
             {
+                //  Ensure this is the corresponding request
                 if (info.ConnectedAddress == this.BoundHost && info.ConnectedPort == this.BoundPort)
                 {
                     this.ExecuteThread(() =>
@@ -163,7 +159,9 @@ namespace Renci.SshNet
                         {
                             this.RaiseRequestReceived(info.OriginatorAddress, info.OriginatorPort);
 
-                            var channel = this.Session.CreateChannel<ChannelForwardedTcpip>(e.Message.LocalChannelNumber, e.Message.InitialWindowSize, e.Message.MaximumPacketSize);
+                            var channel = this.Session.CreateServerChannel<ChannelForwardedTcpip>(
+                                channelOpenMessage.LocalChannelNumber, channelOpenMessage.InitialWindowSize,
+                                channelOpenMessage.MaximumPacketSize);
                             channel.Bind(this.HostAddress, this.Port);
                         }
                         catch (Exception exp)
@@ -175,7 +173,7 @@ namespace Renci.SshNet
             }
         }
 
-        private void Session_RequestFailure(object sender, System.EventArgs e)
+        private void Session_RequestFailure(object sender, EventArgs e)
         {
             this._requestStatus = false;
             this._globalRequestResponse.Set();
@@ -196,7 +194,7 @@ namespace Renci.SshNet
 
         #region IDisposable Members
 
-        private bool _isDisposed = false;
+        private bool _isDisposed;
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

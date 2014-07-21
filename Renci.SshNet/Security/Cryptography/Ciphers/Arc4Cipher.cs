@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Renci.SshNet.Security.Cryptography.Ciphers
 {
@@ -10,7 +7,7 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
     /// </summary>
     public sealed class Arc4Cipher : StreamCipher
     {
-        private readonly static int STATE_LENGTH = 256;
+        private static readonly int STATE_LENGTH = 256;
 
         /// <summary>
         ///  Holds the state of the RC4 engine
@@ -143,11 +140,6 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
             return inputCount;
         }
 
-        private void Reset()
-        {
-            SetKey(this._workingKey);
-        }
-
         private void SetKey(byte[] keyBytes)
         {
             this._workingKey = keyBytes;
@@ -161,15 +153,15 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
             }
 
             // reset the state of the engine
-            for (byte i = 0; i < STATE_LENGTH; i++)
+            for (var i = 0; i < STATE_LENGTH; i++)
             {
-                this._engineState[i] = i;
+                this._engineState[i] = (byte) i;
             }
 
             int i1 = 0;
             int i2 = 0;
 
-            for (int i = 0; i < STATE_LENGTH; i++)
+            for (var i = 0; i < STATE_LENGTH; i++)
             {
                 i2 = ((keyBytes[i1] & 0xff) + this._engineState[i] + i2) & 0xff;
                 // do the byte-swap inline

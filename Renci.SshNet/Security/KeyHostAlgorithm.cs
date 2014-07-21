@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Renci.SshNet.Common;
-using Renci.SshNet.Security.Cryptography;
 
 namespace Renci.SshNet.Security
 {
@@ -65,7 +62,7 @@ namespace Renci.SshNet.Security
         /// </returns>
         public override byte[] Sign(byte[] data)
         {
-            return new SignatureKeyData(this.Name, this.Key.Sign(data)).GetBytes().ToArray();
+            return new SignatureKeyData(this.Name, this.Key.Sign(data)).GetBytes();
         }
 
         /// <summary>
