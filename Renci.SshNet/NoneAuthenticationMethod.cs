@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Renci.SshNet.Messages.Authentication;
 using Renci.SshNet.Messages;
@@ -26,7 +24,7 @@ namespace Renci.SshNet
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KeyboardInteractiveConnectionInfo"/> class.
+        /// Initializes a new instance of the <see cref="NoneAuthenticationMethod"/> class.
         /// </summary>
         /// <param name="username">The username.</param>
         /// <exception cref="ArgumentException"><paramref name="username"/> is whitespace or null.</exception>
@@ -54,7 +52,7 @@ namespace Renci.SshNet
 
             session.SendMessage(new RequestMessageNone(ServiceName.Connection, this.Username));
 
-            session.WaitHandle(this._authenticationCompleted);
+            session.WaitOnHandle(this._authenticationCompleted);
 
             session.UserAuthenticationSuccessReceived -= Session_UserAuthenticationSuccessReceived;
             session.UserAuthenticationFailureReceived -= Session_UserAuthenticationFailureReceived;
@@ -84,7 +82,7 @@ namespace Renci.SshNet
         
         #region IDisposable Members
 
-        private bool isDisposed = false;
+        private bool _isDisposed;
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
@@ -103,7 +101,7 @@ namespace Renci.SshNet
         protected virtual void Dispose(bool disposing)
         {
             // Check to see if Dispose has already been called.
-            if (!this.isDisposed)
+            if (!this._isDisposed)
             {
                 // If disposing equals true, dispose all managed
                 // and unmanaged resources.
@@ -118,7 +116,7 @@ namespace Renci.SshNet
                 }
 
                 // Note disposing has been done.
-                isDisposed = true;
+                _isDisposed = true;
             }
         }
 

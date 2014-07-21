@@ -11,7 +11,7 @@ namespace Renci.SshNet.Channels
     /// <summary>
     /// Implements "forwarded-tcpip" SSH channel.
     /// </summary>
-    internal partial class ChannelForwardedTcpip : Channel
+    internal partial class ChannelForwardedTcpip : ServerChannel
     {
         private Socket _socket;
 
@@ -30,9 +30,7 @@ namespace Renci.SshNet.Channels
         /// Initializes a new instance of the <see cref="ChannelForwardedTcpip"/> class.
         /// </summary>
         public ChannelForwardedTcpip()
-            : base()
         {
-
         }
 
         /// <summary>
@@ -42,9 +40,7 @@ namespace Renci.SshNet.Channels
         /// <param name="connectedPort">The connected port.</param>
         public void Bind(IPAddress connectedHost, uint connectedPort)
         {
-            byte[] buffer = null;
-
-            this.ServerWindowSize = this.LocalWindowSize;
+            byte[] buffer;
 
             if (!this.IsConnected)
             {
@@ -55,12 +51,12 @@ namespace Renci.SshNet.Channels
             try
             {
                 //  Get buffer in memory for data exchange
-                buffer = new byte[this.PacketSize - 9];
+                buffer = new byte[this.RemotePacketSize];
 
                 this.OpenSocket(connectedHost, connectedPort);
 
                 //  Send channel open confirmation message
-                this.SendMessage(new ChannelOpenConfirmationMessage(this.RemoteChannelNumber, this.LocalWindowSize, this.PacketSize, this.LocalChannelNumber));
+                this.SendMessage(new ChannelOpenConfirmationMessage(this.RemoteChannelNumber, this.LocalWindowSize, this.LocalPacketSize, this.LocalChannelNumber));
             }
             catch (Exception exp)
             {
@@ -75,7 +71,7 @@ namespace Renci.SshNet.Channels
                 {
                 try
                 {
-                    int read = 0;
+                    var read = 0;
                     this.InternalSocketReceive(buffer, ref read);
 
                     if (read > 0)

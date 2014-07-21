@@ -48,6 +48,17 @@ namespace Renci.SshNet
         /// Initializes a new instance of the <see cref="ForwardedPortLocal"/> class.
         /// </summary>
         /// <param name="boundHost">The bound host.</param>
+        /// <param name="host">The host.</param>
+        /// <param name="port">The port.</param>
+        public ForwardedPortLocal(string boundHost, string host, uint port)
+            : this(boundHost, 0, host, port) 
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ForwardedPortLocal"/> class.
+        /// </summary>
+        /// <param name="boundHost">The bound host.</param>
         /// <param name="boundPort">The bound port.</param>
         /// <param name="host">The host.</param>
         /// <param name="port">The port.</param>
@@ -77,7 +88,6 @@ namespace Renci.SshNet
             this.Port = port;
         }
 
-
         /// <summary>
         /// Starts local port forwarding.
         /// </summary>
@@ -104,7 +114,7 @@ namespace Renci.SshNet
 
         #region IDisposable Members
 
-        private bool _isDisposed = false;
+        private bool _isDisposed;
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged ResourceMessages.

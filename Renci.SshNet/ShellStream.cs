@@ -17,15 +17,15 @@ namespace Renci.SshNet
     {
         private readonly Session _session;
 
-        private readonly int _bufferSize = 1024;
+        private const int _bufferSize = 1024;
 
         private ChannelSession _channel;
 
-        private Encoding _encoding;
+        private readonly Encoding _encoding;
 
-        private Queue<byte> _incoming;
+        private readonly Queue<byte> _incoming;
 
-        private Queue<byte> _outgoing;
+        private readonly Queue<byte> _outgoing;
 
         private AutoResetEvent _dataReceived = new AutoResetEvent(false);
 
@@ -63,11 +63,11 @@ namespace Renci.SshNet
             this._incoming = new Queue<byte>();
             this._outgoing = new Queue<byte>();
 
-            this._channel = this._session.CreateChannel<ChannelSession>();
-            this._channel.DataReceived += new EventHandler<ChannelDataEventArgs>(Channel_DataReceived);
-            this._channel.Closed += new EventHandler<ChannelEventArgs>(Channel_Closed);
-            this._session.Disconnected += new EventHandler<EventArgs>(Session_Disconnected);
-            this._session.ErrorOccured += new EventHandler<ExceptionEventArgs>(Session_ErrorOccured);
+            this._channel = this._session.CreateClientChannel<ChannelSession>();
+            this._channel.DataReceived += Channel_DataReceived;
+            this._channel.Closed += Channel_Closed;
+            this._session.Disconnected += Session_Disconnected;
+            this._session.ErrorOccured += Session_ErrorOccured;
 
             this._channel.Open();
             this._channel.SendPseudoTerminalRequest(terminalName, columns, rows, width, height, terminalModeValues);
@@ -202,7 +202,7 @@ namespace Renci.SshNet
         /// <exception cref="T:System.NotSupportedException">The stream does not support seeking, such as if the stream is constructed from a pipe or console output. </exception>
         ///   
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override long Seek(long offset, System.IO.SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }
@@ -244,7 +244,7 @@ namespace Renci.SshNet
         {
             foreach (var b in buffer.Skip(offset).Take(count).ToArray())
             {
-                if (this._outgoing.Count < this._bufferSize)
+                if (this._outgoing.Count < _bufferSize)
                 {
                     this._outgoing.Enqueue(b);
                     continue;
@@ -309,7 +309,7 @@ namespace Renci.SshNet
 
                 if (!expectedFound)
                 {
-                    if (timeout != null)
+                    if (timeout.Ticks > 0)
                     {
                         if (!this._dataReceived.WaitOne(timeout))
                         {
@@ -429,7 +429,7 @@ namespace Renci.SshNet
                         if (expectActionResult != null)
                             break;
 
-                        if (timeout != null)
+                        if (timeout.Ticks > 0)
                         {
                             if (!this._dataReceived.WaitOne(timeout))
                             {
@@ -543,7 +543,7 @@ namespace Renci.SshNet
                     }
                 }
 
-                if (timeout != null)
+                if (timeout.Ticks > 0)
                 {
                     if (!this._dataReceived.WaitOne(timeout))
                     {
@@ -604,7 +604,7 @@ namespace Renci.SshNet
                     }
                 }
 
-                if (timeout != null)
+                if (timeout.Ticks > 0)
                 {
                     if (!this._dataReceived.WaitOne(timeout))
                     {
@@ -627,7 +627,7 @@ namespace Renci.SshNet
         /// <returns>The text available in the shell.</returns>
         public string Read()
         {
-            var text = string.Empty;
+            string text;
 
             lock (this._incoming)
             {
@@ -635,7 +635,7 @@ namespace Renci.SshNet
                 this._incoming.Clear();
             }
 
-            return text.ToString();
+            return text;
         }
 
         /// <summary>
@@ -659,7 +659,7 @@ namespace Renci.SshNet
         /// <param name="line">The line to be written to the shell.</param>
         public void WriteLine(string line)
         {
-            var commandText = string.Format("{0}{1}", line, "\r\n");
+            var commandText = string.Format("{0}{1}", line, "\r");
             this.Write(commandText);
         }
 
@@ -685,8 +685,8 @@ namespace Renci.SshNet
 
             if (this._session != null)
             {
-                this._session.Disconnected -= new EventHandler<EventArgs>(Session_Disconnected);
-                this._session.ErrorOccured -= new EventHandler<ExceptionEventArgs>(Session_ErrorOccured);
+                this._session.Disconnected -= Session_Disconnected;
+                this._session.ErrorOccured -= Session_ErrorOccured;
             }
         }
 
@@ -694,9 +694,9 @@ namespace Renci.SshNet
         /// Waits for the handle to be signaled or for an error to occurs.
         /// </summary>
         /// <param name="waitHandle">The wait handle.</param>
-        protected void WaitHandle(WaitHandle waitHandle)
+        protected void WaitOnHandle(WaitHandle waitHandle)
         {
-            this._session.WaitHandle(waitHandle);
+            this._session.WaitOnHandle(waitHandle);
         }
 
         partial void ExecuteThread(Action action);
@@ -728,12 +728,11 @@ namespace Renci.SshNet
             lock (this._incoming)
             {
                 foreach (var b in e.Data)
-                {
                     this._incoming.Enqueue(b);
-                }
             }
 
-            this._dataReceived.Set();
+            if (_dataReceived != null)
+                _dataReceived.Set();
 
             this.OnDataReceived(e.Data);
         }
