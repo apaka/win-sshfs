@@ -25,7 +25,7 @@ namespace Sshfs.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("15")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public uint AttributeCacheTimeout {
             get {
                 return ((uint)(this["AttributeCacheTimeout"]));
@@ -34,7 +34,7 @@ namespace Sshfs.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public uint DirContentCacheTimeout {
             get {
                 return ((uint)(this["DirContentCacheTimeout"]));
