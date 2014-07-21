@@ -438,7 +438,7 @@ namespace Sshfs
         private void openFileDialog_FileOk(object sender, CancelEventArgs e)
         {
             //don't check larger files
-            if (new FileInfo(openFileDialog.FileName).Length>4*4*1024||!PrivateKeyFile.IsValid(openFileDialog.FileName))
+            if (new FileInfo(openFileDialog.FileName).Length>4*4*1024/*||!PrivateKeyFile.IsValid(openFileDialog.FileName) not supported in current version, solved on open*/)
             {
                 
                 MessageBox.Show(this,
