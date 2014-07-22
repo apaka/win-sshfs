@@ -430,7 +430,7 @@ namespace Renci.SshNet.Sftp
                 this.WaitOnHandle(wait, this._operationTimeout);
             }
 
-            if (exception != null)
+            if (!nullOnError && exception != null)
             {
                 throw exception;
             }
@@ -470,7 +470,7 @@ namespace Renci.SshNet.Sftp
                 this.WaitOnHandle(wait, this._operationTimeout);
             }
 
-            if (exception != null)
+            if (!nullOnError && exception != null)
             {
                 throw exception;
             }
