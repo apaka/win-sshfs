@@ -55,7 +55,7 @@
             this.passwordBox = new System.Windows.Forms.TextBox();
             this.authLabel = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.mountPointBox = new System.Windows.Forms.TextBox();
             this.driveListView = new System.Windows.Forms.ListView();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.imageList = new System.Windows.Forms.ImageList(this.components);
@@ -116,7 +116,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 26.10063F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 73.89937F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 9F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 10F));
             this.fieldsPanel.Controls.Add(this.nameBox, 1, 0);
             this.fieldsPanel.Controls.Add(this.label1, 0, 0);
             this.fieldsPanel.Controls.Add(this.hostBox, 1, 1);
@@ -134,7 +134,7 @@
             this.fieldsPanel.Controls.Add(this.panel2, 1, 5);
             this.fieldsPanel.Controls.Add(this.authLabel, 0, 5);
             this.fieldsPanel.Controls.Add(this.label8, 0, 8);
-            this.fieldsPanel.Controls.Add(this.textBox1, 1, 8);
+            this.fieldsPanel.Controls.Add(this.mountPointBox, 1, 8);
             this.fieldsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fieldsPanel.Location = new System.Drawing.Point(253, 5);
             this.fieldsPanel.Name = "fieldsPanel";
@@ -156,7 +156,7 @@
             // 
             // nameBox
             // 
-            this.nameBox.Location = new System.Drawing.Point(86, 3);
+            this.nameBox.Location = new System.Drawing.Point(85, 3);
             this.nameBox.Name = "nameBox";
             this.nameBox.Size = new System.Drawing.Size(186, 20);
             this.nameBox.TabIndex = 0;
@@ -175,7 +175,7 @@
             // 
             // hostBox
             // 
-            this.hostBox.Location = new System.Drawing.Point(86, 32);
+            this.hostBox.Location = new System.Drawing.Point(85, 32);
             this.hostBox.Name = "hostBox";
             this.hostBox.Size = new System.Drawing.Size(186, 20);
             this.hostBox.TabIndex = 1;
@@ -194,7 +194,7 @@
             // 
             // portBox
             // 
-            this.portBox.Location = new System.Drawing.Point(86, 62);
+            this.portBox.Location = new System.Drawing.Point(85, 62);
             this.portBox.Name = "portBox";
             this.portBox.Size = new System.Drawing.Size(68, 20);
             this.portBox.TabIndex = 2;
@@ -223,7 +223,7 @@
             // 
             // userBox
             // 
-            this.userBox.Location = new System.Drawing.Point(86, 90);
+            this.userBox.Location = new System.Drawing.Point(85, 90);
             this.userBox.Name = "userBox";
             this.userBox.Size = new System.Drawing.Size(186, 20);
             this.userBox.TabIndex = 3;
@@ -237,7 +237,7 @@
             "Password",
             "PrivateKey",
             "Pageant"});
-            this.authCombo.Location = new System.Drawing.Point(86, 119);
+            this.authCombo.Location = new System.Drawing.Point(85, 119);
             this.authCombo.Name = "authCombo";
             this.authCombo.Size = new System.Drawing.Size(121, 21);
             this.authCombo.TabIndex = 4;
@@ -269,7 +269,7 @@
             // 
             this.panel1.Controls.Add(this.letterBox);
             this.panel1.Controls.Add(this.mountCheck);
-            this.panel1.Location = new System.Drawing.Point(86, 238);
+            this.panel1.Location = new System.Drawing.Point(85, 238);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(182, 23);
             this.panel1.TabIndex = 12;
@@ -303,7 +303,7 @@
             this.directoryBox.Items.AddRange(new object[] {
             ".",
             "/"});
-            this.directoryBox.Location = new System.Drawing.Point(86, 211);
+            this.directoryBox.Location = new System.Drawing.Point(85, 211);
             this.directoryBox.Name = "directoryBox";
             this.directoryBox.Size = new System.Drawing.Size(186, 21);
             this.directoryBox.TabIndex = 8;
@@ -325,7 +325,7 @@
             this.panel2.Controls.Add(this.privateKeyBox);
             this.panel2.Controls.Add(this.privateKeyButton);
             this.panel2.Controls.Add(this.passwordBox);
-            this.panel2.Location = new System.Drawing.Point(86, 148);
+            this.panel2.Location = new System.Drawing.Point(85, 148);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(186, 57);
             this.panel2.TabIndex = 15;
@@ -383,18 +383,18 @@
             this.label8.Dock = System.Windows.Forms.DockStyle.Left;
             this.label8.Location = new System.Drawing.Point(3, 264);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(63, 29);
+            this.label8.Size = new System.Drawing.Size(69, 29);
             this.label8.TabIndex = 17;
-            this.label8.Text = "Virtual path:";
+            this.label8.Text = "Mount folder:";
             this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // textBox1
+            // mountPointBox
             // 
-            this.textBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox1.Location = new System.Drawing.Point(86, 267);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(228, 20);
-            this.textBox1.TabIndex = 18;
+            this.mountPointBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mountPointBox.Location = new System.Drawing.Point(85, 267);
+            this.mountPointBox.Name = "mountPointBox";
+            this.mountPointBox.Size = new System.Drawing.Size(228, 20);
+            this.mountPointBox.TabIndex = 18;
             // 
             // driveListView
             // 
@@ -736,7 +736,7 @@
         private System.Windows.Forms.ToolStripMenuItem unmountMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox mountPointBox;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel3;
         private System.Windows.Forms.ComboBox virtualDriveCombo;
         private System.Windows.Forms.Label label9;

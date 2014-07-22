@@ -93,7 +93,7 @@ namespace Sshfs
                 _drives[i].StatusChanged += drive_StatusChanged;
                 if (_drives[i].Name.StartsWith("New Drive")) _namecount++;
 
-                virtualDrive.AddSubFS(_drives[i].Name, _drives[i]);
+                virtualDrive.AddSubFS(_drives[i]);
             }
 
 
@@ -367,6 +367,7 @@ namespace Sshfs
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
+                mountPointBox.Text = drive.MountPoint;
             }
         }
 
@@ -393,7 +394,7 @@ namespace Sshfs
                 nameBox.Focus();
                 return;
             }
-            var drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+            SftpDrive drive = driveListView.SelectedItems[0].Tag as SftpDrive;
 
             if ((_regex.IsMatch(nameBox.Text) || nameBox.Text == String.Format("{0}@'{1}'", drive.Username, drive.Host)) &&
                 !String.IsNullOrEmpty(userBox.Text) && !String.IsNullOrEmpty(hostBox.Text))
@@ -417,6 +418,7 @@ namespace Sshfs
             drive.Password = passwordBox.Text;
             drive.PrivateKey = privateKeyBox.Text;
             drive.Passphrase = passphraseBox.Text;
+            drive.MountPoint = mountPointBox.Text;
             _dirty = true;
         }
 

@@ -22,7 +22,7 @@ namespace Sshfs
         private readonly string _volumeLabel;
         private bool _debugMode = false;
 
-        private readonly Dictionary<string, SftpDrive> _subsytems = new Dictionary<string, SftpDrive>();
+        private readonly List<SftpDrive> _subsytems = new List<SftpDrive>();
 
         #endregion
 
@@ -37,14 +37,14 @@ namespace Sshfs
 
         #region  Methods
 
-        internal void AddSubFS(string path, SftpDrive fileSystem)
+        internal void AddSubFS(SftpDrive sftpDrive)
         {
-            _subsytems.Add(path, fileSystem);
+            _subsytems.Add(sftpDrive);
         }
 
-        internal void RemoveSubFS(string path, SftpDrive fileSystem)
+        internal void RemoveSubFS(SftpDrive sftpDrive)
         {
-            _subsytems.Remove(path);
+            _subsytems.Remove(sftpDrive);
         }
 
 
@@ -75,68 +75,65 @@ namespace Sshfs
             return DokanError.ErrorAccessDenied;
         }
 
-        private string GetSubSystemFileName(string fileName, out string subfs)
+        private SftpDrive GetDriveByMountPoint(string fileName, out string subfspath)
         {
-            string[] parts = fileName.Split(new char[] { '\\'}, 3);
-            if (parts.Count() > 1)
+            if (fileName.Length>1)
             {
-                if (parts[0] != "")
+                string path = fileName.Substring(1);
+                foreach (SftpDrive drive in this._subsytems)
                 {
-                    subfs = null;
-                    return null;
-                }
-                subfs = parts[1];
-
-                if (!this._subsytems.ContainsKey(subfs))
-                {
-                    subfs = null;
-                    return "\\";
-                }
-
-                if (parts.Count()==3){
-                    return "\\"+parts[2];
-                }
-                else
-                {
-                    return "\\";
+                    if (drive.MountPoint.Length > 0)
+                    {
+                        if (path == drive.MountPoint) // path contains leading \
+                        {
+                            subfspath = path.Substring(drive.MountPoint.Length + 1);
+                            return drive;
+                        }
+                    }
                 }
             }
-
-            subfs = null;
-            return fileName;
+            subfspath = fileName;
+            return null;
         }
 
-        private IDokanOperations GetSubSystemOperations(string subid)
+        private IDokanOperations GetSubSystemOperations(SftpDrive drive)
         {
-            if (subid == null)
+            if (drive == null)
                 return null;
-            if (!this._subsytems.ContainsKey(subid))
-            {
-                Log("Drive subid no longer exists?");
-                return null;
-            }
-            SftpDrive subdrive = this._subsytems[subid];
-            
-            if (subdrive.Status != DriveStatus.Mounted){
-                subdrive.Mount();
-            }
 
-            SftpFilesystem subfs = subdrive._filesystem;
-            return ((IDokanOperations)subfs);
+            if (drive.Status != DriveStatus.Mounted)
+            {
+                drive.Mount();
+            }
+            if (drive == null)
+                return null;
+
+            return ((IDokanOperations)drive._filesystem);
         }
 
         DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
         {
             Log("VFS OpenDir:{0}", fileName);
-            string subid;
-            string subfilename = GetSubSystemFileName(fileName, out subid);
-            if (subid != null)
-                return GetSubSystemOperations(subid).OpenDirectory(subfilename, info);
 
-            if (fileName == "\\")
-            {
-                info.IsDirectory = true;
+            SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            if (drive != null)
+                return GetSubSystemOperations(drive).OpenDirectory(fileName, info);
+
+            info.IsDirectory = true;
+
+            if (fileName.Length == 1) //root dir
                 return DokanError.ErrorSuccess;
+
+            string path = fileName.Substring(1);//cut leading \
+
+            foreach (SftpDrive subdrive in _subsytems)
+            {
+                string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
+                if (path == mp)
+                    return DokanError.ErrorSuccess;
+
+                if (mp.IndexOf(path + '\\') == 0) //path is part of mount point
+                    return DokanError.ErrorSuccess;
             }
 
             return DokanError.ErrorPathNotFound;
@@ -192,27 +189,54 @@ namespace Sshfs
 
         DokanError IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
-            Log("FindFiles:{0}", fileName);
+            Log("VFS FindFiles:{0}", fileName);
 
-            string subid;
-            string subfilename = GetSubSystemFileName(fileName, out subid);
-            if (subid != null)
-            {
-                return GetSubSystemOperations(subid).FindFiles(subfilename, out files, info);
-            }
+            SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            if (drive != null)
+                return GetSubSystemOperations(drive).FindFiles(fileName, out files, info);
             
+
             files = new List<FileInformation>();
 
-            foreach (string dir in _subsytems.Keys)
+            string path = fileName.Substring(1);//cut leading \
+            foreach(SftpDrive subdrive in _subsytems)
             {
-                //SftpFilesystem fs = _subsytems[path];
-                FileInformation fi = new FileInformation();
-                fi.FileName = dir;
-                fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
-                fi.CreationTime = DateTime.Now;
-                fi.LastWriteTime = DateTime.Now;
-                fi.LastAccessTime = DateTime.Now;
-                files.Add(fi);
+                string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
+
+                if (path.Length > 0) //not root dir
+                {
+                    if (path == mp) //this shoud not happend, because is managed by drive
+                    {
+                        Log("Error, mountpoint not in drives?");
+                        break;
+                    }
+
+                    if (mp.IndexOf(path + '\\') == 0) //path is part of mount point =>implies=> length of path>mp
+                    {
+                        mp = mp.Substring(path.Length + 1); //cut the path
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                int cuttmp = mp.IndexOf('\\');
+                if (cuttmp>0) // have submountpoint like  mp1\mp2 
+                {
+                    mp = mp.Substring(0, cuttmp);
+                }
+
+                if (!files.Select(file => file.FileName).Contains(mp))
+                {
+                    FileInformation fi = new FileInformation();
+                    fi.FileName = mp;
+                    fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
+                    fi.CreationTime = DateTime.Now;
+                    fi.LastWriteTime = DateTime.Now;
+                    fi.LastAccessTime = DateTime.Now;
+                    files.Add(fi);
+                }
             }
            
             return DokanError.ErrorSuccess;

@@ -78,7 +78,7 @@ namespace Sshfs
 
         public DriveStatus Status { get; private set; }
 
-
+        public string MountPoint { get; set; }
 
 
         public SftpDrive(){}
@@ -327,6 +327,14 @@ namespace Sshfs
                 Passphrase = Utilities.UnprotectString(info.GetString("p"));
                 PrivateKey = info.GetString("k");
             }
+            try
+            {
+                MountPoint = info.GetString("mountpoint");
+            }
+            catch
+            {
+                MountPoint = Name;//default is name after version update
+            }
         }
 
 
@@ -341,6 +349,7 @@ namespace Sshfs
             info.AddValue("mount", Automount);
             info.AddValue("user", Username);
             info.AddValue("c", (byte)ConnectionType);
+            info.AddValue("mountpoint", MountPoint);
             if (ConnectionType == ConnectionType.Password)
             {
                 info.AddValue("p", Utilities.ProtectString(Password));
