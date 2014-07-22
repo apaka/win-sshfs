@@ -142,7 +142,16 @@ namespace DokanNet
         private readonly IDokanOperations _operations;
 
         private readonly uint _serialNumber;
-        
+
+
+        [Conditional("DEBUG")]
+        private void Log(string format, params object[] arg)
+        {
+            //Console.WriteLine(format, arg);
+            Debug.Write(DateTime.Now.ToLongTimeString() + " DOKAN proxy: ");
+            Debug.WriteLine(format, arg);
+        }
+
 
         public DokanOperationProxy(IDokanOperations operations)
         {
@@ -165,8 +174,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("CreateFileProxy: {0}\n",rawFileName);
+                //throw;
 #endif
 
                 return ERROR_FILE_NOT_FOUND;
@@ -184,8 +194,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("OpenDirectoryProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -202,8 +213,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("CreateDirectoryProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -220,8 +232,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("CleanupProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -238,8 +251,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("CloseFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -259,8 +273,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("ReadFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -280,8 +295,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("WriteFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -298,8 +314,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("FlushFileBuffersProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -351,8 +368,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("GetFileInformationProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -390,8 +408,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("FindFilesProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_HANDLE;
             }
@@ -442,8 +461,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("SetEndOfFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -459,8 +479,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("SetAllocationSizeProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -478,8 +499,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("SetFileAttributesProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -515,8 +537,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("SetFileTimeProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -532,8 +555,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("DeleteFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -550,8 +574,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("DeleteDirectoryProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -570,8 +595,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("MoveFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -589,8 +615,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("LockFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -609,8 +636,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("UnlockFileProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -629,8 +657,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("GetDiskFreeSpaceProxy: {0}\n", rawFileInfo);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -667,8 +696,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("GetVolumeInformationProxy: {0}\n", rawVolumeNameBuffer);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -683,8 +713,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("UnmountProxy: {0}\n", rawFileInfo);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -741,8 +772,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("UnmountProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
@@ -786,8 +818,9 @@ namespace DokanNet
             }
             catch
             {
-#if DEBUG
-                throw;
+#if DEBUGDOKAN
+                Log("SetFileSecurityProxy: {0}\n", rawFileName);
+                //throw;
 #endif
                 return ERROR_INVALID_FUNCTION;
             }
