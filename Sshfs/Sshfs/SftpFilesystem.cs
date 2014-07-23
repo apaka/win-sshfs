@@ -30,9 +30,10 @@ using Renci.SshNet;
 using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using FileAccess = DokanNet.FileAccess;
-using System.Runtime.CompilerServices;
+//using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
-[assembly: InternalsVisibleTo("WinSshFS, PublicKey=0024000004800000940000000602000000240000525341310004000001000100bb1df492d3d63bb4aedb73672b0c0694ad7838ea17c6d49685ef1a03301ae6de5a4b4b1795844de0ddab49254d05bd533b5a02c24a580346274b204b8975536ffe36b4e7bb8c82e419264c335682ad44861e99eef16e95ee978742064c9335283ecb6e2fd325ea97942a51a3fc1a7d9948dd919b0d4ad25148d5490cc37f85b4")]
+//[assembly: InternalsVisibleTo("WinSshFS, PublicKey=0024000004800000940000000602000000240000525341310004000001000100bb1df492d3d63bb4aedb73672b0c0694ad7838ea17c6d49685ef1a03301ae6de5a4b4b1795844de0ddab49254d05bd533b5a02c24a580346274b204b8975536ffe36b4e7bb8c82e419264c335682ad44861e99eef16e95ee978742064c9335283ecb6e2fd325ea97942a51a3fc1a7d9948dd919b0d4ad25148d5490cc37f85b4")]
 
 namespace Sshfs
 {
@@ -719,6 +720,31 @@ namespace Sshfs
                                      files),
                        DateTimeOffset.UtcNow.AddSeconds(Math.Max(_attributeCacheTimeout,
                                                                  Math.Min(files.Count, _directoryCacheTimeout))));
+
+            return DokanError.ErrorSuccess;
+        }
+
+        DokanError IDokanOperations.FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
+        {
+            /* SFTP does not support patterns, but we can use patterns other than '*' with different cache method
+             */
+            Log("FindFilesWithPattern:{0},{1}", fileName,searchPattern);
+
+            //TODO: caching difference for * and others
+            //find all
+            DokanError result = ((IDokanOperations)this).FindFiles(fileName, out files, info);
+            if (result != DokanError.ErrorSuccess)
+                return result;
+
+            //apply pattern
+            List<FileInformation> filteredfiles = new List<FileInformation>();
+
+            Regex repattern = new Regex(Regex.Escape(searchPattern).Replace("\\*", ".*"));
+            foreach(FileInformation fi in files){
+                if (repattern.IsMatch(fi.FileName))
+                    filteredfiles.Add(fi);
+            }
+            files = filteredfiles;
 
             return DokanError.ErrorSuccess;
         }

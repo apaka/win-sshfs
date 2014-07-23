@@ -30,6 +30,8 @@ namespace DokanNet
 
         DokanError FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info);
 
+        DokanError FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info);
+
         DokanError SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info);
 
         DokanError SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
