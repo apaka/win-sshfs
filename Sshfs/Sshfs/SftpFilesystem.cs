@@ -248,8 +248,8 @@ namespace Sshfs
          
 
 
-            Log("Open| Name:{0},\n Mode:{1},\n Share{2},\n Disp:{3},\n Flags{4},\n Attr:{5}\n", fileName, access,
-                share, mode, options, attributes);
+            Log("Open| Name:{0},\n Mode:{1},\n Share{2},\n Disp:{3},\n Flags{4},\n Attr:{5},\nPagingIO:{6} NoCache:{7} SynIO:{8}\n", fileName, access,
+                share, mode, options, attributes, info.PagingIo, info.NoCache, info.SynchronousIo);
 
             switch (mode)
             {
@@ -760,6 +760,8 @@ namespace Sshfs
                     filteredfiles.Add(fi);
             }
             files = filteredfiles;
+            /*not sure, whats right... if (files.Count == 0)
+                return DokanError.ErrorFileNotFound;*/
 
             return DokanError.ErrorSuccess;
         }

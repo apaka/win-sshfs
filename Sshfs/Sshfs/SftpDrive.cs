@@ -149,8 +149,12 @@ namespace Sshfs
 
                 try
                 {
+                    int threadCount = 8;
+#if DEBUG
+                threadCount=1;
+#endif
                     _filesystem.Mount(String.Format("{0}:\\", Letter),
-                        Settings.Default.UseNetworkDrive?DokanOptions.NetworkDrive|DokanOptions.KeepAlive: DokanOptions.RemovableDrive|DokanOptions.KeepAlive);
+                        Settings.Default.UseNetworkDrive?DokanOptions.NetworkDrive|DokanOptions.KeepAlive: DokanOptions.RemovableDrive|DokanOptions.KeepAlive, threadCount);
                 }
                 catch (Exception e)
                 {
