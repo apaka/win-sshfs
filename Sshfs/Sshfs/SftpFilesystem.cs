@@ -587,13 +587,14 @@ namespace Sshfs
         {
             Log("FindFiles:{0}", fileName);
 
+            /*
             var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
             if (dircache != null)
             {
                 files = (dircache).Item2;
                 Log("CacheHit:{0}", fileName);
                 return DokanError.ErrorSuccess;
-            }
+            }*/
 
 
             byte[] handle;
@@ -730,11 +731,25 @@ namespace Sshfs
              */
             Log("FindFilesWithPattern:{0},{1}", fileName,searchPattern);
 
-            //TODO: caching difference for * and others
-            //find all
-            DokanError result = ((IDokanOperations)this).FindFiles(fileName, out files, info);
-            if (result != DokanError.ErrorSuccess)
-                return result;
+            //* -> list all without cache
+            if (searchPattern == "*")
+            {
+                return ((IDokanOperations)this).FindFiles(fileName, out files, info);
+            }
+
+            //get files from cache || load them
+            var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
+            if (dircache != null)
+            {
+                files = (dircache).Item2;
+                Log("CacheHit:{0}", fileName);
+            }
+            else
+            {
+                DokanError result = ((IDokanOperations)this).FindFiles(fileName, out files, info);
+                if (result != DokanError.ErrorSuccess)
+                    return result;
+            }
 
             //apply pattern
             List<FileInformation> filteredfiles = new List<FileInformation>();
