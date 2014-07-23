@@ -93,8 +93,8 @@ namespace DokanNet
                                           GetDiskFreeSpace = dokanOperationProxy.GetDiskFreeSpaceProxy,
                                           GetVolumeInformation = dokanOperationProxy.GetVolumeInformationProxy,
                                           Unmount = dokanOperationProxy.UnmountProxy,
-                                        //  GetFileSecurity = dokanOperationProxy.GetFileSecurityProxy,
-                                         // SetFileSecurity = dokanOperationProxy.SetFileSecurityProxy,
+                                          GetFileSecurity = dokanOperationProxy.GetFileSecurityProxy,
+                                          SetFileSecurity = dokanOperationProxy.SetFileSecurityProxy,
                                       };
 
            
