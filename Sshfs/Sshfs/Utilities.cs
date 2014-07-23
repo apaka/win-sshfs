@@ -68,11 +68,19 @@ namespace Sshfs
 
         public static string UnprotectString(string stringToUnprotect)
         {
-            return stringToUnprotect != null
-                       ? Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(stringToUnprotect),
-                                                                         null,
-                                                                         DataProtectionScope.CurrentUser))
-                       : null;
+            try
+            {
+                return stringToUnprotect != null
+                           ? Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(stringToUnprotect),
+                                                                             null,
+                                                                             DataProtectionScope.CurrentUser))
+                           : null;
+            }
+            catch
+            {
+                //in case of migration of config.xml between hosts - passwords cannot and shoud not work
+                return null;
+            }
         }
 
         public static IEnumerable<char> GetAvailableDrives()
