@@ -464,6 +464,10 @@ namespace Sshfs
             LogFSActionInit("CloseFile", fileName, (SftpContext)info.Context, "");
             //???flush?
 
+            (info.Context as SftpContext).Stream.Flush();
+            (info.Context as SftpContext).Stream.Dispose();
+            _cache.Remove(fileName);
+
             return DokanError.ErrorSuccess;
         }
 
@@ -525,6 +529,11 @@ namespace Sshfs
                 }
                 else
                 {
+                    if (fileName == "\\public\\1\\test\\.git\\config.lock")
+                    {
+                        Log("Data: {0}", Encoding.ASCII.GetString(buffer));
+                    }
+                    
                     var stream = (info.Context as SftpContext).Stream;
                     lock (stream)
                     {
@@ -547,7 +556,8 @@ namespace Sshfs
             //Log("FLUSH:{0}", fileName);
             LogFSActionInit("FlushFile", fileName, (SftpContext)info.Context,"");
 
-            (info.Context as SftpContext).Stream.Flush(); //I newer saw it get called ,but ..
+            (info.Context as SftpContext).Stream.Flush(); //git use this
+            _cache.Remove(fileName);
 
             LogFSActionSuccess("FlushFile", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
@@ -760,13 +770,17 @@ namespace Sshfs
 
             _sftpSession.RequestClose(handle);
 
-
-            _cache.Add(fileName, new Tuple<DateTime, IList<FileInformation>>(
-                                     (info.Context as SftpContext).Attributes.LastWriteTime,
-                                     files),
-                       DateTimeOffset.UtcNow.AddSeconds(Math.Max(_attributeCacheTimeout,
-                                                                 Math.Min(files.Count, _directoryCacheTimeout))));
-
+            try
+            {
+                _cache.Add(fileName, new Tuple<DateTime, IList<FileInformation>>(
+                                         (info.Context as SftpContext).Attributes.LastWriteTime,
+                                         files),
+                           DateTimeOffset.UtcNow.AddSeconds(Math.Max(_attributeCacheTimeout,
+                                                                     Math.Min(files.Count, _directoryCacheTimeout))));
+            }
+            catch
+            {
+            }
             LogFSActionSuccess("FindFiles", fileName, (SftpContext)info.Context, "Count:{0}", files.Count);
             return DokanError.ErrorSuccess;
         }
@@ -801,7 +815,7 @@ namespace Sshfs
             //apply pattern
             List<FileInformation> filteredfiles = new List<FileInformation>();
 
-            Regex repattern = new Regex(Regex.Escape(searchPattern).Replace("\\*", ".*"));
+            Regex repattern = new Regex("^"+Regex.Escape(searchPattern).Replace("\\*", ".*")+"$");
             foreach(FileInformation fi in files){
                 if (repattern.IsMatch(fi.FileName))
                     filteredfiles.Add(fi);

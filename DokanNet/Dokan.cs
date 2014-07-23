@@ -74,7 +74,7 @@ namespace DokanNet
                                           OpenDirectory = dokanOperationProxy.OpenDirectoryProxy,
                                           CreateDirectory = dokanOperationProxy.CreateDirectoryProxy,
                                           Cleanup = dokanOperationProxy.CleanupProxy,
-                                        //  CloseFile = dokanOperationProxy.CloseFileProxy,
+                                          CloseFile = dokanOperationProxy.CloseFileProxy,
                                           ReadFile = dokanOperationProxy.ReadFileProxy,
                                           WriteFile = dokanOperationProxy.WriteFileProxy,
                                           FlushFileBuffers = dokanOperationProxy.FlushFileBuffersProxy,
