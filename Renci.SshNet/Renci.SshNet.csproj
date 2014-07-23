@@ -153,9 +153,9 @@
     <Compile Include="IdentityReference.cs" />
     <Compile Include="Messages\Transport\KeyExchangeEcdhInitMessage.cs" />
     <Compile Include="Messages\Transport\KeyExchangeEcdhReplyMessage.cs" />
-    <Compile Include="Pageantx\COPYDATASTRUCT.cs" />
-    <Compile Include="Pageantx\NativeMethods.cs" />
-    <Compile Include="Pageantx\PageantProtocol.cs" />
+    <Compile Include="Pageant\COPYDATASTRUCT.cs" />
+    <Compile Include="Pageant\NativeMethods.cs" />
+    <Compile Include="Pageant\PageantProtocol.cs" />
     <Compile Include="Security\Cryptography\Hashes\RIPEMD160Hash.cs" />
     <Compile Include="Security\Cryptography\Hashes\SHA2HashBase.cs">
       <SubType>Code</SubType>

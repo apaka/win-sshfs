@@ -181,21 +181,21 @@ namespace Sshfs
 
         private bool UserCanRead(SftpFileAttributes attributes)
         {
-            return _userId == -1 || (attributes.OwnerCanRead && attributes.UserId == _userId ||
+            return _userId <= 0 || (attributes.OwnerCanRead && attributes.UserId == _userId ||
                                      (attributes.GroupCanRead && _userGroups.Contains(attributes.GroupId) ||
                                       attributes.OthersCanRead));
         }
 
         private bool UserCanWrite(SftpFileAttributes attributes)
         {
-            return _userId == -1 || (attributes.OwnerCanWrite && attributes.UserId == _userId ||
+            return _userId <= 0 || (attributes.OwnerCanWrite && attributes.UserId == _userId ||
                                      (attributes.GroupCanWrite && _userGroups.Contains(attributes.GroupId) ||
                                       attributes.OthersCanWrite));
         }
 
         private bool UserCanExecute(SftpFileAttributes attributes)
         {
-            return _userId == -1 || (attributes.OwnerCanExecute && attributes.UserId == _userId ||
+            return _userId <= 0 || (attributes.OwnerCanExecute && attributes.UserId == _userId ||
                                      (attributes.GroupCanExecute && _userGroups.Contains(attributes.GroupId) ||
                                       attributes.OthersCanExecute));
         }
@@ -547,7 +547,7 @@ namespace Sshfs
                            {
                                Attributes =
                                    FileAttributes.NotContentIndexed,
-                               FileName = String.Empty,
+                               FileName = Path.GetFileName(fileName), //String.Empty,
                                // GetInfo info doesn't use it maybe for sorting .
                                CreationTime = sftpFileAttributes.LastWriteTime,
                                LastAccessTime = sftpFileAttributes.LastAccessTime,
