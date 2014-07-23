@@ -17,7 +17,7 @@ namespace DokanNet.Native
         public DokanOperationProxy.GetFileInformationDelegate GetFileInformation;
         public DokanOperationProxy.FindFilesDelegate FindFiles;
 
-        public IntPtr FindFilesWithPattern;
+        public DokanOperationProxy.FindFilesWithPatternDelegate FindFilesWithPattern;
 
         public DokanOperationProxy.SetFileAttributesDelegate SetFileAttributes;
         public DokanOperationProxy.SetFileTimeDelegate SetFileTime;

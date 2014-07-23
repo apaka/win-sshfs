@@ -45,11 +45,11 @@ namespace DokanNet
             [MarshalAs(UnmanagedType.LPWStr)] string rawFileName, IntPtr rawFillFindData, // function pointer
             [MarshalAs(UnmanagedType.LPStruct), In/*, Out*/] DokanFileInfo rawFileInfo);
 
-        /*     public delegate int FindFilesWithPatternDelegate(
+        public delegate int FindFilesWithPatternDelegate(
             [MarshalAs(UnmanagedType.LPWStr)] string rawFileName,
             [MarshalAs(UnmanagedType.LPWStr)] string rawSearchPattern,
             IntPtr rawFillFindData, // function pointer
-            [MarshalAs(UnmanagedType.LPStruct), In, Out] DokanFileInfo rawFileInfo);*/
+            [MarshalAs(UnmanagedType.LPStruct), In, Out] DokanFileInfo rawFileInfo);
 
         public delegate int FlushFileBuffersDelegate(
             [MarshalAs(UnmanagedType.LPWStr)] string rawFileName,
@@ -414,6 +414,42 @@ namespace DokanNet
 #endif
                 return ERROR_INVALID_HANDLE;
             }
+        }
+
+        public int FindFilesWithPatternProxy(string rawFileName, string searchPattern, IntPtr rawFillFindData,
+                                  // function pointer
+                                  DokanFileInfo rawFileInfo)
+        {
+            try
+            {
+                IList<FileInformation> files;
+
+
+                int ret = (int)_operations.FindFilesWithPattern(rawFileName, searchPattern, out files, rawFileInfo);
+
+
+                Debug.Assert(files != null);
+                if (ret == ERROR_SUCCESS && files.Count != 0)
+                {
+                    var fill =
+                   (FILL_FIND_DATA)Marshal.GetDelegateForFunctionPointer(rawFillFindData, typeof(FILL_FIND_DATA));
+                    // Used a single entry call to speed up the "enumeration" of the list
+                    for (int index = 0; index < files.Count; index++)
+                    {
+                        Addto(fill, rawFileInfo, files[index]);
+                    }
+                }
+                return ret;
+            }
+            catch
+            {
+#if DEBUGDOKAN
+                Log("FindFilesProxyWithPattern: {0}\n", rawFileName);
+                //throw;
+#endif
+                return ERROR_INVALID_HANDLE;
+            }
+        
         }
 
 
