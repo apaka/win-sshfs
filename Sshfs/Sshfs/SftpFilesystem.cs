@@ -161,6 +161,33 @@ namespace Sshfs
             Debug.WriteLine(format, arg);
         }
 
+        [Conditional("DEBUG")]
+        private void LogFSAction(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")+"\t"+context+"\t"+action+"\t"+path+"\t");
+            Debug.WriteLine(format, arg);
+        }
+
+        [Conditional("DEBUG")]
+        private void LogFSActionInit(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action+"^", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionSuccess(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "$", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionError(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "!", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionOther(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "|", path, context, format, arg);
+        }
         private IEnumerable<int> GetUserGroupsIds()
         {
             using (var cmd = new SshCommand(Session, "id -G "))
@@ -238,18 +265,16 @@ namespace Sshfs
 
             if (sftpFileAttributes == null)
             {
-                Log("cache miss");
+                //Log("cache miss");
                 
                 sftpFileAttributes = GetAttributes(path);
                 if (sftpFileAttributes != null)
                     _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
-           
-         
 
-
-            Log("Open| Name:{0},\n Mode:{1},\n Share{2},\n Disp:{3},\n Flags{4},\n Attr:{5},\nPagingIO:{6} NoCache:{7} SynIO:{8}\n", fileName, access,
-                share, mode, options, attributes, info.PagingIo, info.NoCache, info.SynchronousIo);
+            LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
+            /*Log("Open| Name:{0},\n Mode:{1},\n Share{2},\n Disp:{3},\n Flags{4},\n Attr:{5},\nPagingIO:{6} NoCache:{7} SynIO:{8}\n", fileName, access,
+                share, mode, options, attributes, info.PagingIo, info.NoCache, info.SynchronousIo);*/
 
             switch (mode)
             {
@@ -259,9 +284,10 @@ namespace Sshfs
                         if (((uint) access & 0xe0000027) == 0 || sftpFileAttributes.IsDirectory)
                             //check if only wants to read attributes,security info or open directory
                         {
-                            Log("JustInfo:{0},{1}", fileName, sftpFileAttributes.IsDirectory);
+                            //Log("JustInfo:{0},{1}", fileName, sftpFileAttributes.IsDirectory);
                             info.IsDirectory = sftpFileAttributes.IsDirectory;
                             info.Context = new SftpContext(sftpFileAttributes);
+                            LogFSActionOther("OpenFile", fileName, (SftpContext)info.Context, "Dir open or get attrs");
                             return DokanError.ErrorSuccess;
                         }
                     }
@@ -284,7 +310,7 @@ namespace Sshfs
                     InvalidateParentCache(fileName);
                     break;
             }
-            Log("NotJustInfo:{0}-{1}", info.Context, mode);
+            //Log("NotJustInfo:{0}-{1}", info.Context, mode);
             try
             {
                 info.Context = new SftpContext(_sftpSession, path, mode,
@@ -299,27 +325,30 @@ namespace Sshfs
 
                 if (sftpPathAttributes == null)
                 {
-                    Log("cache miss");
+                    //Log("cache miss");
 
                     sftpPathAttributes = GetAttributes(ownerpath);
                     if (sftpPathAttributes != null)
                         _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                     else
                     {
-                        Log("Up directory must be created");
+                        //Log("Up directory must be created");
+                        LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "Up directory mising:{0}", ownerpath);
                         return DokanError.ErrorPathNotFound;
                     }
                 }
+                LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "Access denied");
                 return DokanError.ErrorAccessDenied;
             }
 
-
+            LogFSActionSuccess("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
         {
-            Log("OpenDir:{0}", fileName);
+            //Log("OpenDir:{0}", fileName);
+            LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context,"");
 
 
 
@@ -330,7 +359,7 @@ namespace Sshfs
 
             if (sftpFileAttributes == null)
             {
-                Log("cache miss");
+                //Log("cache miss");
                
                 sftpFileAttributes = GetAttributes(path);
                 if (sftpFileAttributes != null)
@@ -357,14 +386,17 @@ namespace Sshfs
                 {
                     _cache.Remove(fileName);
                 }
+                LogFSActionSuccess("OpenDir", fileName, (SftpContext)info.Context,"");
                 return DokanError.ErrorSuccess;
             }
+            LogFSActionError("OpenDir", fileName, (SftpContext)info.Context,"Path not found");
             return DokanError.ErrorPathNotFound;
         }
 
         DokanError IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
         {
-            Log("CreateDir:{0}", fileName);
+            //Log("CreateDir:{0}", fileName);
+            LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context, "");
 
 
             try
@@ -374,19 +406,22 @@ namespace Sshfs
             }
             catch (SftpPermissionDeniedException)
             {
+                LogFSActionError("OpenDir", fileName, (SftpContext)info.Context, "Access denied");
                 return DokanError.ErrorAccessDenied;
             }
             catch (SshException) // operation should fail with generic error if file already exists
             {
+                LogFSActionError("OpenDir", fileName, (SftpContext)info.Context, "Already exists");
                 return DokanError.ErrorAlreadyExists;
             }
-
+            LogFSActionSuccess("OpenDir", fileName, (SftpContext)info.Context,"");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
         {
-            Log("Cleanup:{0},Delete:{1}", info.Context,info.DeleteOnClose);
+            //Log("Cleanup:{0},Delete:{1}", info.Context,info.DeleteOnClose);
+            LogFSActionInit("Cleanup", fileName, (SftpContext)info.Context, "");
 
             if (info.Context != null)
             {
@@ -417,12 +452,15 @@ namespace Sshfs
                 _cache.Remove(path);
             }
 
+            LogFSActionSuccess("Cleanup", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
         {
-            Log("Close:{0}", info.Context);
+            //Log("Close:{0}", info.Context);
+            LogFSActionInit("CloseFile", fileName, (SftpContext)info.Context, "");
+            //???flush?
 
             return DokanError.ErrorSuccess;
         }
@@ -431,8 +469,8 @@ namespace Sshfs
         DokanError IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
                                              DokanFileInfo info)
         {
-            Log("ReadFile:{0}:{1}|lenght:[{2}]|offset:[{3}]", fileName,
-                info.Context , buffer.Length, offset);
+            //Log("ReadFile:{0}:{1}|lenght:[{2}]|offset:[{3}]", fileName,info.Context , buffer.Length, offset);
+            LogFSActionInit("ReadFile", fileName, (SftpContext)info.Context, "BuffLen:{0} Offset:{1}", buffer.Length, offset);
 
             if (info.Context == null)
             {
@@ -442,6 +480,7 @@ namespace Sshfs
                 _sftpSession.RequestClose(handle);
                 Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
                 bytesRead = data.Length;
+                LogFSActionOther("ReadFile", fileName, (SftpContext)info.Context, "NOCONTEXT BuffLen:{0} Offset:{1} Read:{2}", buffer.Length, offset,bytesRead);
             }
             else
             {
@@ -451,11 +490,14 @@ namespace Sshfs
                 {
                     stream.Position = offset;
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
+
+                    LogFSActionOther("ReadFile", fileName, (SftpContext)info.Context, "BuffLen:{0} Offset:{1} Read:{2}", buffer.Length, offset, bytesRead);                    
                 }
                 //  watch.Stop();
                 // Log("{0}",watch.ElapsedMilliseconds);
             }
-            Log("END READ:{0},{1}",offset,info.Context);
+            //Log("END READ:{0},{1}",offset,info.Context);
+            LogFSActionSuccess("ReadFile", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
         }
 
@@ -464,8 +506,8 @@ namespace Sshfs
         {
            
 
-                Log("WriteFile:{0}:{1}|lenght:[{2}]|offset:[{3}]", fileName,
-                    info.Context, buffer.Length, offset);
+                //Log("WriteFile:{0}:{1}|lenght:[{2}]|offset:[{3}]", fileName,info.Context, buffer.Length, offset);
+            LogFSActionInit("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{0} Len:{1}", offset, buffer.Length);
                
                
                 if (info.Context == null) // who would guess
@@ -477,6 +519,7 @@ namespace Sshfs
                     }
                     _sftpSession.RequestClose(handle);
                     bytesWritten = buffer.Length;
+                    LogFSActionOther("WriteFile", fileName, (SftpContext)info.Context, "NOCONTEXT Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
                 }
                 else
                 {
@@ -492,23 +535,27 @@ namespace Sshfs
                 }
               
                // Log("END WRITE:{0},{1},{2}", offset,info.Context,watch.ElapsedMilliseconds);
+                LogFSActionSuccess("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
                 return DokanError.ErrorSuccess;
             }
         
 
         DokanError IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
         {
-            Log("FLUSH:{0}", fileName);
+            //Log("FLUSH:{0}", fileName);
+            LogFSActionInit("FlushFile", fileName, (SftpContext)info.Context,"");
 
             (info.Context as SftpContext).Stream.Flush(); //I newer saw it get called ,but ..
 
+            LogFSActionSuccess("FlushFile", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
                                                        DokanFileInfo info)
         {
-            Log("GetInfo:{0}:{1}", fileName,info.Context);
+            //Log("GetInfo:{0}:{1}", fileName,info.Context);
+            LogFSActionInit("FileInfo", fileName, (SftpContext)info.Context, "");
 
             var context = info.Context as SftpContext;
 
@@ -570,12 +617,16 @@ namespace Sshfs
             }
             //  Console.WriteLine(sftpattributes.UserId + "|" + sftpattributes.GroupId + "L" +
             //  sftpattributes.OthersCanExecute + "K" + sftpattributes.OwnerCanExecute);
+
+            LogFSActionSuccess("FileInfo", fileName, (SftpContext)info.Context, "Length:{0} Attrs:{1}", fileInfo.Length, fileInfo.Attributes);
+
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
-            Log("FindFiles:{0}", fileName);
+            //Log("FindFiles:{0}", fileName);
+            LogFSActionInit("FindFiles", fileName, (SftpContext)info.Context, "");
 
             /*
             var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
@@ -712,6 +763,7 @@ namespace Sshfs
                        DateTimeOffset.UtcNow.AddSeconds(Math.Max(_attributeCacheTimeout,
                                                                  Math.Min(files.Count, _directoryCacheTimeout))));
 
+            LogFSActionSuccess("FindFiles", fileName, (SftpContext)info.Context, "Count:{0}", files.Count);
             return DokanError.ErrorSuccess;
         }
 
@@ -719,7 +771,8 @@ namespace Sshfs
         {
             /* SFTP does not support patterns, but we can use patterns other than '*' with different cache method
              */
-            Log("FindFilesWithPattern:{0},{1}", fileName,searchPattern);
+            //Log("FindFilesWithPattern:{0},{1}", fileName,searchPattern);
+            LogFSActionInit("FindFilesPat", fileName, (SftpContext)info.Context, "Pattern:{0}", searchPattern);
 
             //* -> list all without cache
             if (searchPattern == "*")
@@ -732,7 +785,7 @@ namespace Sshfs
             if (dircache != null)
             {
                 files = (dircache).Item2;
-                Log("CacheHit:{0}", fileName);
+                //Log("CacheHit:{0}", fileName);
             }
             else
             {
@@ -753,34 +806,40 @@ namespace Sshfs
             /*not sure, whats right... if (files.Count == 0)
                 return DokanError.ErrorFileNotFound;*/
 
+            LogFSActionSuccess("FindFilesPat", fileName, (SftpContext)info.Context, "Pattern:{0} Count:{1}", searchPattern, files.Count);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-            Log("TrySetAttributes:{0}\n{1};", fileName, attributes);
+            //Log("TrySetAttributes:{0}\n{1};", fileName, attributes);
+            LogFSActionError("SetFileAttr", fileName, (SftpContext)info.Context, "NI Attrs:{0}", attributes);
 
             return DokanError.ErrorSuccess;
         }
 
-        DokanError IDokanOperations.SetFileTime(string filename, DateTime? creationTime, DateTime? lastAccessTime,
+        DokanError IDokanOperations.SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
                                                 DateTime? lastWriteTime, DokanFileInfo info)
         {
-            Log("TrySetFileTime:{0}\n|c:{1}\n|a:{2}\n|w:{3}", filename, creationTime, lastAccessTime,
-                lastWriteTime);
+            //Log("TrySetFileTime:{0}\n|c:{1}\n|a:{2}\n|w:{3}", filename, creationTime, lastAccessTime,lastWriteTime);
+            LogFSActionInit("SetFileTime", fileName, (SftpContext)info.Context, "");
+
             var sftpattributes = (info.Context as SftpContext).Attributes;
 
             var mtime = lastWriteTime ?? (creationTime ?? sftpattributes.LastWriteTime);
 
             var atime = lastAccessTime ?? sftpattributes.LastAccessTime;
 
-            _sftpSession.RequestSetStat(GetUnixPath(filename), new SftpFileAttributes(atime, mtime, -1, -1, -1, 0, null));
+            _sftpSession.RequestSetStat(GetUnixPath(fileName), new SftpFileAttributes(atime, mtime, -1, -1, -1, 0, null));
+
+            LogFSActionSuccess("SetFileTime", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.DeleteFile(string fileName, DokanFileInfo info)
         {
-            Log("DeleteFile:{0}", fileName);
+            //Log("DeleteFile:{0}", fileName);
+            LogFSActionInit("DeleteFile", fileName, (SftpContext)info.Context, "");
 
             string parentPath = GetUnixPath(fileName.Substring(0, fileName.LastIndexOf('\\')));
 
@@ -794,6 +853,7 @@ namespace Sshfs
             }
 
 
+            LogFSActionSuccess("DeleteFile", fileName, (SftpContext)info.Context, "Success:{0}", UserCanWrite(sftpFileAttributes));
             return
                 UserCanWrite(
                     sftpFileAttributes)
@@ -803,7 +863,8 @@ namespace Sshfs
 
         DokanError IDokanOperations.DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            Log("DeleteDirectory:{0}", fileName);
+            //Log("DeleteDirectory:{0}", fileName);
+            LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
 
 
             string parentPath = GetUnixPath(fileName.Substring(0, fileName.LastIndexOf('\\')));
@@ -822,38 +883,51 @@ namespace Sshfs
                 !UserCanWrite(
                     sftpFileAttributes))
             {
+                LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Access denied");
                 return DokanError.ErrorAccessDenied;
             }
             var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
             if (dircache != null)
             {
-                Log("DelateCacheHit:{0}", fileName);
+                //Log("DelateCacheHit:{0}", fileName);
+                bool test = dircache.Item2.Count == 0 || dircache.Item2.All(i => i.FileName == "." || i.FileName == "..");
+                
+                if (test)
+                    LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
+                else
+                    LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
 
-
-                return dircache.Item2.Count == 0 || dircache.Item2.All(i => i.FileName == "." || i.FileName == "..")
-                           ? DokanError.ErrorSuccess
-                           : DokanError.ErrorDirNotEmpty;
+                return test ? DokanError.ErrorSuccess : DokanError.ErrorDirNotEmpty;
             }
 
             var handle = _sftpSession.RequestOpenDir(GetUnixPath(fileName), true);
 
             if (handle == null)
+            {
+                LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Open failed, access denied?");
                 return DokanError.ErrorAccessDenied;
+            }
 
             var dir = _sftpSession.RequestReadDir(handle);
             _sftpSession.RequestClose(handle);
             // usualy there are two entries . and ..
 
-            return dir.Length == 0 || dir.All(i => i.Key == "." || i.Key == "..")
-                       ? DokanError.ErrorSuccess
-                       : DokanError.ErrorDirNotEmpty;
+            bool test2 = dir.Length == 0 || dir.All(i => i.Key == "." || i.Key == "..");
+            
+            if (test2)
+                LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
+            else
+                LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
+
+            return test2 ? DokanError.ErrorSuccess : DokanError.ErrorDirNotEmpty;
         }
 
         DokanError IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
-            Log("MoveFile |Name:{0} ,NewName:{3},Reaplace{4},IsDirectory:{1} ,Context:{2}",
-                oldName, info.IsDirectory,
-                info.Context, newName, replace);
+            //Log("MoveFile |Name:{0} ,NewName:{3},Replace:{4},IsDirectory:{1} ,Context:{2}",oldName, info.IsDirectory, info.Context, newName, replace);
+            LogFSActionInit("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Replace:{1}",newName, replace);
+
+
             string oldpath = GetUnixPath(oldName);
             /*  if (_generalSftpSession.RequestLStat(oldpath, true) == null)
                 return DokanError.ErrorPathNotFound;
@@ -875,9 +949,10 @@ namespace Sshfs
                 }
                 catch (SftpPermissionDeniedException)
                 {
+                    LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Access denied", newName);
                     return DokanError.ErrorAccessDenied;
                 }
-
+                LogFSActionSuccess("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target didnt exists", newName);
                 return DokanError.ErrorSuccess;
             }
             else if (replace)
@@ -907,42 +982,54 @@ namespace Sshfs
                 }
                 catch (SftpPermissionDeniedException)
                 {
+                    LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Access denied", newName);
                     return DokanError.ErrorAccessDenied;
                 } // not tested on sftp3
+
+                LogFSActionSuccess("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target was replaced", newName);
                 return DokanError.ErrorSuccess;
             }
+            LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target already exists", newName);
             return DokanError.ErrorAlreadyExists;
         }
 
         DokanError IDokanOperations.SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-            Log("SetEnd");
+            //Log("SetEnd");
+            LogFSActionInit("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
             InvalidateParentCache(fileName);
+            LogFSActionSuccess("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
-            Log("SetSize");
+            //Log("SetSize");
+            LogFSActionInit("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
             InvalidateParentCache(fileName);
+            LogFSActionSuccess("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.LockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
+            LogFSActionError("LockFile", fileName, (SftpContext)info.Context, "NI");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
+            LogFSActionError("UnlockFile", fileName, (SftpContext)info.Context, "NI");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.GetDiskFreeSpace(out long free, out long total,
                                                      out long used, DokanFileInfo info)
         {
+            //Log("GetDiskFreeSpace");
+            LogFSActionInit("GetDiskFreeSpace", this._volumeLabel, (SftpContext)info.Context, "");
 
             
             Log("GetDiskFreeSpace");
@@ -988,14 +1075,15 @@ namespace Sshfs
                 _cache.Add(_volumeLabel, new Tuple<long, long, long>(free, total, used),
                            DateTimeOffset.UtcNow.AddMinutes(3));
             }
-            
+            LogFSActionSuccess("GetDiskFreeSpace", this._volumeLabel, (SftpContext)info.Context, "Free:{0} Total:{1} Used:{2}", free, total, used);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                          out string filesystemName, DokanFileInfo info)
         {
-            Log("GetVolumeInformation");
+            //Log("GetVolumeInformation");
+            LogFSActionInit("GetVolumeInformation", this._volumeLabel, (SftpContext)info.Context, "");
 
             volumeLabel = _volumeLabel;
 
@@ -1005,14 +1093,15 @@ namespace Sshfs
                        FileSystemFeatures.SupportsRemoteStorage | FileSystemFeatures.UnicodeOnDisk;
             //FileSystemFeatures.PersistentAcls
 
-
+            LogFSActionSuccess("GetVolumeInformation", this._volumeLabel, (SftpContext)info.Context, "FS:{0} Features:{1}", filesystemName, features);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.GetFileSecurity(string filename, out FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
-            Log("GetSecurrityInfo:{0}:{1}", filename, sections);
+            //Log("GetSecurrityInfo:{0}:{1}", filename, sections);
+            LogFSActionInit("GetFileSecurity", filename, (SftpContext)info.Context, "Sections:{0}",sections);
 
 
             var sftpattributes = (info.Context as SftpContext).Attributes;
@@ -1043,21 +1132,23 @@ namespace Sshfs
             // if (sections.HasFlag(AccessControlSections.Group))
             security.SetGroup(new NTAccount("None"));
 
+            LogFSActionSuccess("GetFileSecurity", filename, (SftpContext)info.Context, "Sections:{0} Rights:{1}", sections, rights);
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.SetFileSecurity(string filename, FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
-            Log("TrySetSecurity:{0}", filename);
+            //Log("TrySetSecurity:{0}", filename);
+            LogFSActionError("SetFileSecurity", filename, (SftpContext)info.Context, "NI");
 
             return DokanError.ErrorAccessDenied;
         }
 
         DokanError IDokanOperations.Unmount(DokanFileInfo info)
         {
-            Log("UNMOUNT");
-
+            //Log("UNMOUNT");
+            LogFSActionError("Unmount", this._volumeLabel, (SftpContext)info.Context, "NI");
             // Disconnect();
             return DokanError.ErrorSuccess;
         }
