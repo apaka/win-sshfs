@@ -463,9 +463,15 @@ namespace Sshfs
             //Log("Close:{0}", info.Context);
             LogFSActionInit("CloseFile", fileName, (SftpContext)info.Context, "");
             //???flush?
-
-            (info.Context as SftpContext).Stream.Flush();
-            (info.Context as SftpContext).Stream.Dispose();
+            if (info.Context != null)
+            {
+                SftpContext context = (SftpContext) info.Context;
+                if (context.Stream != null)
+                {
+                    (info.Context as SftpContext).Stream.Flush();
+                    (info.Context as SftpContext).Stream.Dispose();
+                }
+            }
             _cache.Remove(fileName);
 
             return DokanError.ErrorSuccess;
