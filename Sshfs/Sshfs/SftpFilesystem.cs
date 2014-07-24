@@ -560,15 +560,17 @@ namespace Sshfs
             var context = info.Context as SftpContext;
 
             SftpFileAttributes sftpFileAttributes;
-            /*
-             * Attributtes in streams are causing trouble with git. GetInfo returns wrong length if other context is writing.
-             * 
-             * if (context != null)
+            
+            if (context != null)
             {
-                sftpFileAttributes = context.Attributes; 
+                /*
+                 * Attributtes in streams are causing trouble with git. GetInfo returns wrong length if other context is writing.
+                 */
+                //sftpFileAttributes = context.Attributes;
+                sftpFileAttributes = GetAttributes(GetUnixPath(fileName));
             }
             else
-            {*/
+            {
                 string path = GetUnixPath(fileName);
                 sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
 
@@ -578,7 +580,7 @@ namespace Sshfs
                     if (sftpFileAttributes != null)
                         _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                 }
-            //}
+            }
 
 
             fileInfo = new FileInformation
