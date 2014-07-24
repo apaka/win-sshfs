@@ -481,25 +481,12 @@ namespace Sshfs
                 else
                 {
                     var stream = (info.Context as SftpContext).Stream;
-                    int written = 0;
-                    int chunk = 16384;//maximum is payload 32768-X, optimum? 16384=1.5, 8192=1.9, 4092=2.3, 2048=2.3(5.8), 1024=2.35
                     lock (stream)
                     {
-                        while (written < buffer.Length)
-                        {
-                            int writecount = buffer.Length - written;
-                            if (writecount > chunk) writecount = chunk;
-                            stream.Position = offset + written;
-                            stream.Write(buffer, written, writecount);
-                            written += writecount;
-                        }
-
-                        //stream.Position = offset;
-                        //stream.Write(buffer, 0, buffer.Length);
-
-
+                        stream.Position = offset;
+                        stream.Write(buffer, 0, buffer.Length);
                     }
-                    //    stream.Flush();
+                    stream.Flush();
                     bytesWritten = buffer.Length;
                     // TODO there are still some apps that don't check disk free space before write
                 }
@@ -526,12 +513,15 @@ namespace Sshfs
             var context = info.Context as SftpContext;
 
             SftpFileAttributes sftpFileAttributes;
-            if (context != null)
+            /*
+             * Attributtes in streams are causing trouble with git. GetInfo returns wrong length if other context is writing.
+             * 
+             * if (context != null)
             {
-                sftpFileAttributes = context.Attributes;
+                sftpFileAttributes = context.Attributes; 
             }
             else
-            {
+            {*/
                 string path = GetUnixPath(fileName);
                 sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
 
@@ -541,7 +531,7 @@ namespace Sshfs
                     if (sftpFileAttributes != null)
                         _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                 }
-            }
+            //}
 
 
             fileInfo = new FileInformation

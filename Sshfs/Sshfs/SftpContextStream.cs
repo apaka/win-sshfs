@@ -25,7 +25,8 @@ namespace Sshfs
 {
     internal sealed class SftpContextStream : Stream
     {
-        private const int WRITE_BUFFER_SIZE = 28*1024;// (1024*32 - 38)*4;
+
+        private const int WRITE_BUFFER_SIZE = 32 * 1024 - 38;// (1024*32 - 38)*4;
         private const int READ_BUFFER_SIZE = 128*1024;
         private readonly byte[] _writeBuffer;
         private byte[] _readBuffer = new byte[0];
@@ -308,20 +309,35 @@ namespace Sshfs
                 }*/
 
 
-            if (tempLen >= count)
+            if (tempLen >= count) //enought remaining space in writeBuffer
             {
                 // No: copy the data to the write buffer first.
                 Buffer.BlockCopy(buffer, offset, _writeBuffer, _writeBufferPosition, count);
                 _writeBufferPosition += count;
             }
-            else
+            else //writeBuffer space insufficient
             {
                 FlushWriteBuffer();
 
 
-                if (count >= WRITE_BUFFER_SIZE)
+                if (count > WRITE_BUFFER_SIZE) //writeBuffer size is still lower
                 {
-                    _session.RequestWrite(_handle, (ulong) _position, buffer, null,null);
+                    //solves problem: max writtable count is WRITE_BUFFER_SIZE
+                    int remainingcount = count;
+                    int suboffset = 0;
+                    while (remainingcount >= WRITE_BUFFER_SIZE)//fire whole blocks
+                    {
+                        int chunkcount = remainingcount <= WRITE_BUFFER_SIZE ? remainingcount : WRITE_BUFFER_SIZE;
+                        Buffer.BlockCopy(buffer, offset+suboffset, _writeBuffer, _writeBufferPosition/*always zero*/, chunkcount);
+                        _session.RequestWrite(_handle, (ulong)(_position+suboffset), _writeBuffer, null, null);
+                        remainingcount -= chunkcount;
+                        suboffset += chunkcount;
+                    }
+                    if (remainingcount > 0)//if something remains, do it standard way:
+                    {
+                        Buffer.BlockCopy(buffer, offset+suboffset, _writeBuffer, _writeBufferPosition/*shoud be 0*/, remainingcount);
+                        _writeBufferPosition += remainingcount;
+                    }
                 }
                 else
                 {
