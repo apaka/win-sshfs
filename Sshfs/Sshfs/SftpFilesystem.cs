@@ -578,6 +578,7 @@ namespace Sshfs
             var context = info.Context as SftpContext;
 
             SftpFileAttributes sftpFileAttributes;
+            string path = GetUnixPath(fileName);
             
             if (context != null)
             {
@@ -585,11 +586,11 @@ namespace Sshfs
                  * Attributtes in streams are causing trouble with git. GetInfo returns wrong length if other context is writing.
                  */
                 //sftpFileAttributes = context.Attributes;
-                sftpFileAttributes = GetAttributes(GetUnixPath(fileName));
+                sftpFileAttributes = GetAttributes(path);
             }
             else
             {
-                string path = GetUnixPath(fileName);
+                
                 sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
 
                 if (sftpFileAttributes == null)
@@ -598,6 +599,16 @@ namespace Sshfs
                     if (sftpFileAttributes != null)
                         _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                 }
+            }
+            if (sftpFileAttributes == null)
+            {
+                //try again?
+                //sftpFileAttributes = GetAttributes(path);
+
+                LogFSActionError("FileInfo", fileName, (SftpContext)info.Context, "No such file - unable to get info");
+                fileInfo = new FileInformation();
+                return DokanError.ErrorFileNotFound;
+
             }
 
 

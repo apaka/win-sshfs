@@ -96,6 +96,8 @@ namespace Sshfs
                         if (path.IndexOf(drive.MountPoint)==0)
                         {
                             subfspath = path.Substring(drive.MountPoint.Length);
+                            if (subfspath == "") 
+                                subfspath = "\\";
                             return drive;
                         }
                     }
@@ -110,7 +112,7 @@ namespace Sshfs
             if (drive == null)
                 return null;
 
-            if (drive.Status != DriveStatus.Mounted)
+            if ((drive.Status != DriveStatus.Mounted)&&(drive.Status != DriveStatus.Mounting))
             {
                 try
                 {
