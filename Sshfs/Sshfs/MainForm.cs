@@ -367,7 +367,7 @@ namespace Sshfs
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
-                mountPointBox.Text = drive.MountPoint;
+                mountPointBox.Text = drive.MountPoint.Replace("/", "\\");//fix unix / to Windows standard
             }
         }
 

@@ -80,11 +80,27 @@ namespace Sshfs
             if (drive != null)
                 return GetSubSystemOperations(drive).CreateFile(fileName, access, share, mode, options, attributes, info);
 
-            //Todo: check against mountpoints
-            info.IsDirectory = true;
-            info.Context = this;
+            //check against mountpoints if virtual dir exists
 
-            return DokanError.ErrorSuccess;
+            string path = fileName.Substring(1);
+            if (path == "")
+            {
+                info.IsDirectory = true;
+                return DokanError.ErrorSuccess;
+            }
+            foreach (SftpDrive drive2 in this._subsytems)
+            {
+                if (drive2.MountPoint.Length > 0)
+                {
+                    if (drive2.MountPoint.IndexOf(path) == 0)
+                    {
+                        info.IsDirectory = true;
+                        return DokanError.ErrorSuccess;
+                    }
+                }
+            }
+
+            return DokanError.ErrorFileNotFound;
         }
 
         private SftpDrive GetDriveByMountPoint(string fileName, out string subfspath)
