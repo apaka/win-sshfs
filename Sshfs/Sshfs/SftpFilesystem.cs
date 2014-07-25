@@ -30,10 +30,6 @@ using Renci.SshNet;
 using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using FileAccess = DokanNet.FileAccess;
-
-//using System.Runtime.CompilerServices;
-//[assembly: InternalsVisibleTo("WinSshFS, PublicKey=0024000004800000940000000602000000240000525341310004000001000100bb1df492d3d63bb4aedb73672b0c0694ad7838ea17c6d49685ef1a03301ae6de5a4b4b1795844de0ddab49254d05bd533b5a02c24a580346274b204b8975536ffe36b4e7bb8c82e419264c335682ad44861e99eef16e95ee978742064c9335283ecb6e2fd325ea97942a51a3fc1a7d9948dd919b0d4ad25148d5490cc37f85b4")]
-
 using System.Text.RegularExpressions;
 
 
@@ -143,12 +139,63 @@ namespace Sshfs
 
         #endregion
 
+        #region Cache
+
+        private void CacheAddAttr(string path, SftpFileAttributes attributes, DateTimeOffset expiration)
+        {
+            LogFSActionSuccess("CacheSetAttr", path, null, "Expir:{1} Size:{0}", attributes.Size, expiration);
+            _cache.Add(_volumeLabel+"A:"+path, attributes, expiration);
+        }
+
+        private void CacheAddDir(string path, Tuple<DateTime, IList<FileInformation>> dir, DateTimeOffset expiration)
+        {
+            LogFSActionSuccess("CacheSetDir", path, null, "Expir:{1} Count:{0}", dir.Item2.Count, expiration);
+            _cache.Add(_volumeLabel + "D:" + path, dir, expiration);
+        }
+
+        private void CacheAddDiskInfo(Tuple<long, long, long> info, DateTimeOffset expiration)
+        {
+            LogFSActionSuccess("CacheSetDInfo", _volumeLabel, null, "Expir:{0}", expiration);
+            _cache.Add(_volumeLabel + "I:", info, expiration);
+        }
+
+
+        private SftpFileAttributes CacheGetAttr(string path)
+        {
+            SftpFileAttributes attributes = _cache.Get(_volumeLabel + "A:" + path) as SftpFileAttributes;
+            LogFSActionSuccess("CacheGetAttr", path, null, "Size:{0}", (attributes == null) ? "miss" : attributes.Size.ToString());
+            return attributes;
+        }
+
+        private Tuple<DateTime, IList<FileInformation>> CacheGetDir(string path)
+        {
+            Tuple<DateTime, IList<FileInformation>> dir = _cache.Get(_volumeLabel + "D:" + path) as Tuple<DateTime, IList<FileInformation>>;
+            LogFSActionSuccess("CacheGetDir", path, null, "Count:{0}", (dir==null) ? "miss" : dir.Item2.Count.ToString());
+            return dir;
+        }
+
+        private Tuple<long, long, long> CacheGetDiskInfo()
+        {
+            Tuple<long, long, long> info = _cache.Get(_volumeLabel + "I:") as Tuple<long, long, long>;
+            LogFSActionSuccess("CacheGetDInfo", _volumeLabel, null, "");
+            return info;
+        }
+
+        private void CacheReset(string path)
+        {
+            LogFSActionSuccess("CacheReset", path, null, "");
+            _cache.Remove(_volumeLabel + "A:" + path);
+            _cache.Remove(_volumeLabel + "D:" + path);
+        }
+
+        #endregion
+
         #region  Methods
 
         private string GetUnixPath(string path)
         {
             // return String.Concat(_rootpath, path.Replace('\\', '/'));
-            return String.Format("{0}{1}", _rootpath, path.Replace('\\', '/'));
+            return String.Format("{0}{1}", _rootpath, path.Replace('\\', '/').Replace("//","/"));
         }
 
 
@@ -166,7 +213,7 @@ namespace Sshfs
         [Conditional("DEBUG")]
         private void LogFSAction(String action, String path, SftpContext context, string format, params object[] arg)
         {
-            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")+"\t"+context+"\t"+action+"\t"+path+"\t");
+            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + context + "\t" + action + "\t" + _volumeLabel +"\t" +path + "\t");
             Debug.WriteLine(format, arg);
         }
 
@@ -244,7 +291,8 @@ namespace Sshfs
         private void InvalidateParentCache(string fileName)
         {
             int index = fileName.LastIndexOf('\\');
-            _cache.Remove(index != 0 ? fileName.Substring(0, index) : "\\");
+            //_cache.Remove(index != 0 ? fileName.Substring(0, index) : "\\");
+            this.CacheReset( GetUnixPath(index != 0 ? fileName.Substring(0, index) : "\\"));
         }
 
         #endregion
@@ -261,9 +309,12 @@ namespace Sshfs
                 return DokanError.ErrorFileNotFound;
             }
 
+            LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
+
             string path = GetUnixPath(fileName);
             //  var  sftpFileAttributes = GetAttributes(path);
-            var sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+            //var sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+            var sftpFileAttributes = this.CacheGetAttr(path);
 
             if (sftpFileAttributes == null)
             {
@@ -271,10 +322,13 @@ namespace Sshfs
                 
                 sftpFileAttributes = GetAttributes(path);
                 if (sftpFileAttributes != null)
-                    _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    //_cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    CacheAddAttr(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                else
+                {
+                    LogFSActionOther("OpenFile", fileName, (SftpContext)info.Context, "get attributes failed");
+                }
             }
-
-            LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
             /*Log("Open| Name:{0},\n Mode:{1},\n Share{2},\n Disp:{3},\n Flags{4},\n Attr:{5},\nPagingIO:{6} NoCache:{7} SynIO:{8}\n", fileName, access,
                 share, mode, options, attributes, info.PagingIo, info.NoCache, info.SynchronousIo);*/
 
@@ -283,8 +337,8 @@ namespace Sshfs
                 case FileMode.Open:
                     if (sftpFileAttributes != null)
                     {
-                        if (((uint) access & 0xe0000027) == 0 || sftpFileAttributes.IsDirectory)
-                            //check if only wants to read attributes,security info or open directory
+                        if (((uint)access & 0xe0000027) == 0 || sftpFileAttributes.IsDirectory)
+                        //check if only wants to read attributes,security info or open directory
                         {
                             //Log("JustInfo:{0},{1}", fileName, sftpFileAttributes.IsDirectory);
                             info.IsDirectory = sftpFileAttributes.IsDirectory;
@@ -293,7 +347,11 @@ namespace Sshfs
                             return DokanError.ErrorSuccess;
                         }
                     }
-                    else return DokanError.ErrorFileNotFound;
+                    else
+                    {
+                        LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "File not found");
+                        return DokanError.ErrorFileNotFound;
+                    }
                     break;
                 case FileMode.CreateNew:
                     if (sftpFileAttributes != null)
@@ -305,7 +363,8 @@ namespace Sshfs
                     if (sftpFileAttributes == null)
                         return DokanError.ErrorFileNotFound;
                     InvalidateParentCache(fileName);
-                    _cache.Remove(path);
+                    //_cache.Remove(path);
+                    this.CacheReset(path);
                     break;
                 default:
 
@@ -323,7 +382,8 @@ namespace Sshfs
             catch (SshException) // Don't have access rights or try to read broken symlink
             {
                 var ownerpath = path.Substring(0, path.LastIndexOf('/'));
-                var sftpPathAttributes = _cache.Get(ownerpath) as SftpFileAttributes;
+                //var sftpPathAttributes = _cache.Get(ownerpath) as SftpFileAttributes;
+                var sftpPathAttributes = CacheGetAttr(ownerpath);
 
                 if (sftpPathAttributes == null)
                 {
@@ -331,7 +391,8 @@ namespace Sshfs
 
                     sftpPathAttributes = GetAttributes(ownerpath);
                     if (sftpPathAttributes != null)
-                        _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                        //_cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                        CacheAddAttr(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                     else
                     {
                         //Log("Up directory must be created");
@@ -357,7 +418,8 @@ namespace Sshfs
 
             string path = GetUnixPath(fileName);
             // var sftpFileAttributes = GetAttributes(GetUnixPath(fileName));
-            var sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+            //var sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+            var sftpFileAttributes = CacheGetAttr(path);
 
             if (sftpFileAttributes == null)
             {
@@ -365,7 +427,8 @@ namespace Sshfs
                
                 sftpFileAttributes = GetAttributes(path);
                 if (sftpFileAttributes != null)
-                    _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    //_cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    CacheAddAttr(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
             
          
@@ -383,10 +446,12 @@ namespace Sshfs
                 info.IsDirectory = true;
                 info.Context = new SftpContext(sftpFileAttributes);
 
-                var dircahe = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
+                //var dircahe = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
+                var dircahe = CacheGetDir(path);
                 if (dircahe != null && dircahe.Item1 != sftpFileAttributes.LastWriteTime)
                 {
-                    _cache.Remove(fileName);
+                    //_cache.Remove(fileName);
+                    CacheReset(path);
                 }
                 LogFSActionSuccess("OpenDir", fileName, (SftpContext)info.Context,"");
                 return DokanError.ErrorSuccess;
@@ -451,7 +516,8 @@ namespace Sshfs
                     _sftpSession.RequestRemove(path);
                 }
                 InvalidateParentCache(fileName);
-                _cache.Remove(path);
+                //_cache.Remove(path);
+                CacheReset(path);
             }
 
             LogFSActionSuccess("Cleanup", fileName, (SftpContext)info.Context, "");
@@ -472,7 +538,8 @@ namespace Sshfs
                     (info.Context as SftpContext).Stream.Dispose();
                 }
             }
-            _cache.Remove(fileName);
+            //_cache.Remove(fileName);
+            CacheReset(GetUnixPath(fileName));
 
             return DokanError.ErrorSuccess;
         }
@@ -563,7 +630,8 @@ namespace Sshfs
             LogFSActionInit("FlushFile", fileName, (SftpContext)info.Context,"");
 
             (info.Context as SftpContext).Stream.Flush(); //git use this
-            _cache.Remove(fileName);
+            //_cache.Remove(fileName);
+            CacheReset(GetUnixPath(fileName));
 
             LogFSActionSuccess("FlushFile", fileName, (SftpContext)info.Context, "");
             return DokanError.ErrorSuccess;
@@ -586,18 +654,24 @@ namespace Sshfs
                  * Attributtes in streams are causing trouble with git. GetInfo returns wrong length if other context is writing.
                  */
                 //sftpFileAttributes = context.Attributes;
-                sftpFileAttributes = GetAttributes(path);
+                //test:
+                if (context.Stream != null)
+                    sftpFileAttributes = GetAttributes(path);
+                else
+                    sftpFileAttributes = context.Attributes;
             }
             else
             {
                 
-                sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+                //sftpFileAttributes = _cache.Get(path) as SftpFileAttributes;
+                sftpFileAttributes = CacheGetAttr(path);
 
                 if (sftpFileAttributes == null)
                 {
                     sftpFileAttributes = GetAttributes(path);
                     if (sftpFileAttributes != null)
-                        _cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                        //_cache.Add(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                        CacheAddAttr(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                 }
             }
             if (sftpFileAttributes == null)
@@ -779,8 +853,10 @@ namespace Sshfs
                         sftpFiles.Where(
                             pair => !pair.Value.IsSymbolicLink))
                 {
-                    _cache.Set(GetUnixPath(String.Format("{0}{1}", fileName, file.Key)), file.Value,
-                               DateTimeOffset.UtcNow.AddSeconds(timeout));
+                    /*_cache.Set(GetUnixPath(String.Format("{0}{1}", fileName, file.Key)), file.Value,
+                               DateTimeOffset.UtcNow.AddSeconds(timeout));*/
+                   CacheAddAttr(GetUnixPath(String.Format("{0}\\{1}", fileName , file.Key)), file.Value,
+                                DateTimeOffset.UtcNow.AddSeconds(timeout));
                 }
             }
 
@@ -789,7 +865,7 @@ namespace Sshfs
 
             try
             {
-                _cache.Add(fileName, new Tuple<DateTime, IList<FileInformation>>(
+                CacheAddDir( GetUnixPath(fileName), new Tuple<DateTime, IList<FileInformation>>(
                                          (info.Context as SftpContext).Attributes.LastWriteTime,
                                          files),
                            DateTimeOffset.UtcNow.AddSeconds(Math.Max(_attributeCacheTimeout,
@@ -816,7 +892,7 @@ namespace Sshfs
             }
 
             //get files from cache || load them
-            var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
+            var dircache = CacheGetDir(GetUnixPath(fileName));
             if (dircache != null)
             {
                 files = (dircache).Item2;
@@ -831,7 +907,6 @@ namespace Sshfs
 
             //apply pattern
             List<FileInformation> filteredfiles = new List<FileInformation>();
-
             Regex repattern = new Regex("^"+Regex.Escape(searchPattern).Replace("\\*", ".*")+"$");
             foreach(FileInformation fi in files){
                 if (repattern.IsMatch(fi.FileName))
@@ -878,13 +953,14 @@ namespace Sshfs
 
             string parentPath = GetUnixPath(fileName.Substring(0, fileName.LastIndexOf('\\')));
 
-            var sftpFileAttributes = _cache.Get(parentPath) as SftpFileAttributes;
+            var sftpFileAttributes = CacheGetAttr(parentPath);
 
             if (sftpFileAttributes == null)
             {
                 sftpFileAttributes = GetAttributes(parentPath);
                 if (sftpFileAttributes != null)
-                    _cache.Add(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    //_cache.Add(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    CacheAddAttr(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
 
 
@@ -904,13 +980,13 @@ namespace Sshfs
 
             string parentPath = GetUnixPath(fileName.Substring(0, fileName.LastIndexOf('\\')));
 
-            var sftpFileAttributes = _cache.Get(parentPath) as SftpFileAttributes;
+            var sftpFileAttributes = CacheGetAttr(parentPath);
 
             if (sftpFileAttributes == null)
             {
                 sftpFileAttributes = GetAttributes(parentPath);
                 if (sftpFileAttributes != null)
-                    _cache.Add(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
+                    CacheAddAttr(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
 
 
@@ -921,7 +997,7 @@ namespace Sshfs
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Access denied");
                 return DokanError.ErrorAccessDenied;
             }
-            var dircache = _cache.Get(fileName) as Tuple<DateTime, IList<FileInformation>>;
+            var dircache = CacheGetDir(GetUnixPath(fileName));
             if (dircache != null)
             {
                 //Log("DelateCacheHit:{0}", fileName);
@@ -980,7 +1056,7 @@ namespace Sshfs
                     _sftpSession.RequestRename(oldpath, newpath);
                     InvalidateParentCache(oldName);
                     InvalidateParentCache(newName);
-                    _cache.Remove(oldpath);
+                    CacheReset(oldpath);
                 }
                 catch (SftpPermissionDeniedException)
                 {
@@ -1013,7 +1089,7 @@ namespace Sshfs
 
                     InvalidateParentCache(oldName);
                     InvalidateParentCache(newName);
-                    _cache.Remove(oldpath);
+                    CacheReset(oldpath);
                 }
                 catch (SftpPermissionDeniedException)
                 {
@@ -1069,7 +1145,7 @@ namespace Sshfs
             
             Log("GetDiskFreeSpace");
 
-            var diskSpaceInfo = _cache.Get(_volumeLabel) as Tuple<long, long, long>;
+            var diskSpaceInfo = CacheGetDiskInfo();
 
             if (diskSpaceInfo != null)
             {
@@ -1107,8 +1183,8 @@ namespace Sshfs
                         }
                     }
 
-                _cache.Add(_volumeLabel, new Tuple<long, long, long>(free, total, used),
-                           DateTimeOffset.UtcNow.AddMinutes(3));
+                CacheAddDiskInfo(new Tuple<long, long, long>(free, total, used),
+                        DateTimeOffset.UtcNow.AddMinutes(3));
             }
             LogFSActionSuccess("GetDiskFreeSpace", this._volumeLabel, (SftpContext)info.Context, "Free:{0} Total:{1} Used:{2}", free, total, used);
             return DokanError.ErrorSuccess;
