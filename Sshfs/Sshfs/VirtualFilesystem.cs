@@ -8,6 +8,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using DokanNet;
+using System.Text.RegularExpressions;
 
 using FileAccess = DokanNet.FileAccess;
 
@@ -73,6 +74,8 @@ namespace Sshfs
                 return DokanError.ErrorFileNotFound;
             }
 
+            Log("VFS CreateFile:{0} Mode:{1}", fileName, mode);
+
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).CreateFile(fileName, access, share, mode, options, attributes, info);
@@ -86,6 +89,7 @@ namespace Sshfs
 
         private SftpDrive GetDriveByMountPoint(string fileName, out string subfspath)
         {
+            Log("VFS Get Drive{0}", fileName);
             if (fileName.Length>1)
             {
                 string path = fileName.Substring(1);
@@ -98,12 +102,14 @@ namespace Sshfs
                             subfspath = path.Substring(drive.MountPoint.Length);
                             if (subfspath == "") 
                                 subfspath = "\\";
+                            Log("VFS Drive:{1} file:{0}", fileName,drive.Name);
                             return drive;
                         }
                     }
                 }
             }
             subfspath = fileName;
+            Log("VFS Drive:none file:{0}", fileName);
             return null;
         }
 
@@ -166,15 +172,21 @@ namespace Sshfs
                 return DokanError.ErrorSuccess;
 
             string path = fileName.Substring(1);//cut leading \
-
+            
             foreach (SftpDrive subdrive in _subsytems)
             {
                 string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
                 if (path == mp)
+                {
+                    info.Context = mp;
                     return DokanError.ErrorSuccess;
+                }
 
-                if (mp.IndexOf(path + '\\') == 0) //path is part of mount point
+                if (mp.IndexOf(path + '\\') == 0)
+                { //path is part of mount point
+                    info.Context = mp;
                     return DokanError.ErrorSuccess;
+                }
             }
 
             return DokanError.ErrorPathNotFound;
@@ -358,13 +370,23 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
+                    fi.Attributes = FileAttributes.Directory /*| FileAttributes.Offline*/;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;
                     files.Add(fi);
                 }
             }
+
+            //apply pattern
+            List<FileInformation> filteredfiles = new List<FileInformation>();
+            Regex repattern = new Regex("^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$");
+            foreach (FileInformation fi in files)
+            {
+                if (repattern.IsMatch(fi.FileName))
+                    filteredfiles.Add(fi);
+            }
+            files = filteredfiles;
 
             return DokanError.ErrorSuccess;
         }
