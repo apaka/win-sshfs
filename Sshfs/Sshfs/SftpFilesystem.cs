@@ -198,7 +198,7 @@ namespace Sshfs
             return String.Format("{0}{1}", _rootpath, path.Replace('\\', '/').Replace("//","/"));
         }
 
-
+        #region Logging
         [Conditional("DEBUG")]
         private void Log(string format, params object[] arg)
         {
@@ -206,14 +206,16 @@ namespace Sshfs
             {
                 Console.WriteLine(format, arg);
             }
+            Debug.AutoFlush = false;
             Debug.Write(DateTime.Now.ToLongTimeString() + " ");
             Debug.WriteLine(format, arg);
+            Debug.Flush();
         }
 
         [Conditional("DEBUG")]
         private void LogFSAction(String action, String path, SftpContext context, string format, params object[] arg)
         {
-            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + context + "\t" + action + "\t" + _volumeLabel +"\t" +path + "\t");
+            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + (context == null ? "[-------]" : context.ToString()) + "\t" + action + "\t" + _volumeLabel +"\t" +path + "\t");
             Debug.WriteLine(format, arg);
         }
 
@@ -237,6 +239,8 @@ namespace Sshfs
         {
             LogFSAction(action + "|", path, context, format, arg);
         }
+
+        #endregion
         private IEnumerable<int> GetUserGroupsIds()
         {
             using (var cmd = new SshCommand(Session, "id -G "))
@@ -910,7 +914,10 @@ namespace Sshfs
             Regex repattern = new Regex("^"+Regex.Escape(searchPattern).Replace("\\*", ".*")+"$");
             foreach(FileInformation fi in files){
                 if (repattern.IsMatch(fi.FileName))
+                {
                     filteredfiles.Add(fi);
+                    LogFSActionOther("FindFilesPat", fileName, (SftpContext)info.Context, "Result:{0}", fi.FileName);
+                }
             }
             files = filteredfiles;
             /*not sure, whats right... if (files.Count == 0)

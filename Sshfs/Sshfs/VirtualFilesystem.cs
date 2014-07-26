@@ -48,7 +48,10 @@ namespace Sshfs
             _subsytems.Remove(sftpDrive);
         }
 
+        #endregion
 
+
+        #region Logging
         [Conditional("DEBUG")]
         private void Log(string format, params object[] arg)
         {
@@ -56,11 +59,43 @@ namespace Sshfs
             {
                 Console.WriteLine(format, arg);
             }
+
+            Debug.AutoFlush = false;
             Debug.Write(DateTime.Now.ToLongTimeString() + " ");
+            Debug.WriteLine(format, arg);
+            Debug.Flush();
+        }
+
+        [Conditional("DEBUG")]
+        private void LogFSAction(String action, String path, SftpDrive subsystem, string format, params object[] arg)
+        {
+            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + "[--VFS--]" + "\t" + action + "\t" + ( subsystem!=null? subsystem.Name : "-       ") + "\t" + path + "\t");
             Debug.WriteLine(format, arg);
         }
 
+        [Conditional("DEBUG")]
+        private void LogFSActionInit(String action, String path, SftpDrive subsystem, string format, params object[] arg)
+        {
+            LogFSAction(action + "^", path, subsystem, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionSuccess(String action, String path, SftpDrive subsystem, string format, params object[] arg)
+        {
+            LogFSAction(action + "$", path, subsystem, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionError(String action, String path, SftpDrive subsystem, string format, params object[] arg)
+        {
+            LogFSAction(action + "!", path, subsystem, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionOther(String action, String path, SftpDrive subsystem, string format, params object[] arg)
+        {
+            LogFSAction(action + "|", path, subsystem, format, arg);
+        }
+
         #endregion
+
 
         #region DokanOperations
 
@@ -74,11 +109,13 @@ namespace Sshfs
                 return DokanError.ErrorFileNotFound;
             }
 
-            Log("VFS CreateFile:{0} Mode:{1}", fileName, mode);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("OpenFile", fileName, drive, "Mode:{0}", mode);
             if (drive != null)
+            {
+                LogFSActionSuccess("OpenFile", fileName, drive, "Mode:{0} NonVFS", mode);
                 return GetSubSystemOperations(drive).CreateFile(fileName, access, share, mode, options, attributes, info);
+            }
 
             //check against mountpoints if virtual dir exists
 
@@ -86,6 +123,8 @@ namespace Sshfs
             if (path == "")
             {
                 info.IsDirectory = true;
+                info.Context = null;
+                LogFSActionSuccess("OpenFile", fileName, null, "VFS root");
                 return DokanError.ErrorSuccess;
             }
             foreach (SftpDrive drive2 in this._subsytems)
@@ -95,17 +134,23 @@ namespace Sshfs
                     if (drive2.MountPoint.IndexOf(path) == 0)
                     {
                         info.IsDirectory = true;
+                        info.Context = drive2;
+                        LogFSActionSuccess("OpenFile", fileName, drive2, "VFS (sub)mountpoint");
                         return DokanError.ErrorSuccess;
                     }
                 }
             }
 
+            //pathnotfound detection?
+
+            LogFSActionError("OpenFile", fileName, null, "File not found");
             return DokanError.ErrorFileNotFound;
         }
 
         private SftpDrive GetDriveByMountPoint(string fileName, out string subfspath)
         {
-            Log("VFS Get Drive{0}", fileName);
+            LogFSActionInit("LookupMP", fileName, null, "");
+
             if (fileName.Length>1)
             {
                 string path = fileName.Substring(1);
@@ -118,14 +163,15 @@ namespace Sshfs
                             subfspath = path.Substring(drive.MountPoint.Length);
                             if (subfspath == "") 
                                 subfspath = "\\";
-                            Log("VFS Drive:{1} file:{0}", fileName,drive.Name);
+                            LogFSActionSuccess("LookupMP", fileName, drive, "Subsystem path: {0}",subfspath);
                             return drive;
                         }
                     }
                 }
             }
             subfspath = fileName;
-            Log("VFS Drive:none file:{0}", fileName);
+
+            LogFSActionSuccess("LookupMP", fileName, null, "VFS path");
             return null;
         }
 
@@ -169,23 +215,28 @@ namespace Sshfs
 
         DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
         {
-            Log("VFS OpenDir:{0}", fileName);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("OpenDir", fileName, drive, "");
+
             if (drive != null)
             {
                 IDokanOperations ops = GetSubSystemOperations(drive);
                 if (ops == null)
                 {
+                    LogFSActionError("OpenDir", fileName, drive, "Strange error, ops not found");
                     return DokanError.ErrorError;
                 }
+                LogFSActionSuccess("OpenDir", fileName, drive, "Found, subsytem");
                 return ops.OpenDirectory(fileName, info);
             }
 
             info.IsDirectory = true;
 
             if (fileName.Length == 1) //root dir
+            {
+                LogFSActionSuccess("OpenDir", fileName, drive, "Found, VFS root");
                 return DokanError.ErrorSuccess;
+            }
 
             string path = fileName.Substring(1);//cut leading \
             
@@ -194,17 +245,19 @@ namespace Sshfs
                 string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
                 if (path == mp)
                 {
-                    info.Context = mp;
+                    info.Context = subdrive;
+                    LogFSActionSuccess("OpenDir", fileName, drive, "Found, final mountpoint");
                     return DokanError.ErrorSuccess;
                 }
 
                 if (mp.IndexOf(path + '\\') == 0)
                 { //path is part of mount point
-                    info.Context = mp;
+                    info.Context = subdrive;
+                    LogFSActionSuccess("OpenDir", fileName, drive, "Found, part of mountpoint");
                     return DokanError.ErrorSuccess;
                 }
             }
-
+            LogFSActionError("OpenDir", fileName, drive, "Path not found");
             return DokanError.ErrorPathNotFound;
         }
 
@@ -219,23 +272,41 @@ namespace Sshfs
 
         DokanError IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
         {
-            Log("VFS Cleanup:{0},Delete:{1}", info.Context, info.DeleteOnClose);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("Cleanup", fileName, drive, "");
             if (drive != null)
+            {
+                LogFSActionSuccess("Cleanup", fileName, drive, "nonVFS clean");
                 return GetSubSystemOperations(drive).Cleanup(fileName, info);
+            }
 
+            if (info.Context != null)
+            {
+                drive = info.Context as SftpDrive;
+                info.Context = null;
+            }
+
+            LogFSActionSuccess("Cleanup", fileName, drive, "VFS clean");
             return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
         {
-            Log("VFS Close:{0}", info.Context);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("CloseFile", fileName, drive, "");
             if (drive != null)
+            {
+                LogFSActionSuccess("CloseFile", fileName, drive, "NonVFS close");
                 return GetSubSystemOperations(drive).CloseFile(fileName, info);
+            }
 
+            if (info.Context != null)
+            {
+                drive = info.Context as SftpDrive;
+                info.Context = null;
+            }
+
+            LogFSActionSuccess("CloseFile", fileName, drive, "VFS close");
             return DokanError.ErrorSuccess;
         }
 
@@ -275,26 +346,75 @@ namespace Sshfs
         DokanError IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
                                                        DokanFileInfo info)
         {
-            Log("VFS GetInfo:{0}:{1}", fileName, info.Context);
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("FileInfo", fileName, drive, "");
             if (drive != null)
+            {
+                LogFSActionSuccess("FileInfo", fileName, drive, "NonVFS");
                 return GetSubSystemOperations(drive).GetFileInformation(fileName, out fileInfo, info);
+            }
+
+            fileInfo = new FileInformation
+            {
+                Attributes =
+                    FileAttributes.NotContentIndexed | FileAttributes.Directory,
+                FileName = Path.GetFileName(fileName), //String.Empty,
+                // GetInfo info doesn't use it maybe for sorting .
+                CreationTime = DateTime.Now,
+                LastAccessTime = DateTime.Now,
+                LastWriteTime = DateTime.Now,
+                Length = 4096
+            };
+
+            if (fileName.Length == 1)
+            { //root dir
+                LogFSActionSuccess("FileInfo", fileName, drive, "root info");
+                return DokanError.ErrorSuccess;
+            }
+
+            string path = fileName.Substring(1);//cut leading \
+
+            if (info.Context != null)
+            {
+                drive = info.Context as SftpDrive;
+                LogFSActionSuccess("FileInfo", fileName, drive, "from context");
+                return DokanError.ErrorSuccess;
+            }
+
+            foreach (SftpDrive subdrive in _subsytems)
+            {
+                string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
+                if (path == mp)
+                {
+                    info.Context = mp;
+                    //fileInfo.FileName = path.Substring(path.LastIndexOf("\\")+1);
+                    LogFSActionSuccess("FileInfo", fileName, drive, "final mountpoint");
+                    return DokanError.ErrorSuccess;
+                }
+
+                if (mp.IndexOf(path + '\\') == 0)
+                { //path is part of mount point
+                    //fileInfo.FileName = path.Substring(path.LastIndexOf("\\") + 1);
+                    LogFSActionSuccess("FileInfo", fileName, drive, "part of mountpoint");
+                    return DokanError.ErrorSuccess;
+                }
+            }
+
+            LogFSActionError("FileInfo", fileName, drive, "path not found");
+            return DokanError.ErrorPathNotFound;
 
 
-            fileInfo = new FileInformation();
-            fileInfo.FileName = fileName;
-            fileInfo.CreationTime = fileInfo.LastAccessTime = fileInfo.LastWriteTime = DateTime.Now;
-            return DokanError.ErrorSuccess;
         }
 
         DokanError IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
-            Log("VFS FindFiles:{0}", fileName);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionError("FindFiles", fileName, drive, "!? not using FindFilesWithPattern !?");
+
             if (drive != null)
                 return GetSubSystemOperations(drive).FindFiles(fileName, out files, info);
             
+            //this shoud be never called
 
             files = new List<FileInformation>();
 
@@ -344,11 +464,14 @@ namespace Sshfs
 
         DokanError IDokanOperations.FindFilesWithPattern(string fileName,string pattern, out IList<FileInformation> files, DokanFileInfo info)
         {
-            Log("VFS FindFiles:{0}", fileName);
-
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
+            LogFSActionInit("FindFilesPat", fileName, drive, "");
+
             if (drive != null)
+            {
+                LogFSActionSuccess("FindFilesPat", fileName, drive, "NonVFS");
                 return GetSubSystemOperations(drive).FindFilesWithPattern(fileName, pattern, out files, info);
+            }
 
 
             files = new List<FileInformation>();
@@ -362,7 +485,7 @@ namespace Sshfs
                 {
                     if (path == mp) //this shoud not happend, because is managed by drive
                     {
-                        Log("Error, mountpoint not in drives?");
+                        LogFSActionError("FindFilesPat", fileName, drive, "mountpoint not in drives?");
                         break;
                     }
 
@@ -386,7 +509,7 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.Directory /*| FileAttributes.Offline*/;
+                    fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;
@@ -400,10 +523,14 @@ namespace Sshfs
             foreach (FileInformation fi in files)
             {
                 if (repattern.IsMatch(fi.FileName))
+                {
                     filteredfiles.Add(fi);
+                    LogFSActionOther("FindFilesPat", fileName, drive, "Result:{0}", fi.FileName);
+                }
             }
             files = filteredfiles;
 
+            LogFSActionError("FindFilesPat", fileName, drive, "Pattern:{0} Count:{1}", pattern, files.Count);
             return DokanError.ErrorSuccess;
         }
 
@@ -518,7 +645,7 @@ namespace Sshfs
         DokanError IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                          out string filesystemName, DokanFileInfo info)
         {
-            Log("GetVolumeInformation");
+            LogFSActionSuccess("DiskInfo", _volumeLabel, null, "");
 
             volumeLabel = _volumeLabel;
 
