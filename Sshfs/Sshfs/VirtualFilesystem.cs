@@ -24,6 +24,7 @@ namespace Sshfs
         private bool _debugMode = false;
 
         private readonly List<SftpDrive> _subsytems = new List<SftpDrive>();
+        private SftpDrive lastActiveSubsytem;
 
         #endregion
 
@@ -220,6 +221,8 @@ namespace Sshfs
 
             if (drive != null)
             {
+                lastActiveSubsytem = drive;
+
                 IDokanOperations ops = GetSubSystemOperations(drive);
                 if (ops == null)
                 {
@@ -230,6 +233,7 @@ namespace Sshfs
                 return ops.OpenDirectory(fileName, info);
             }
 
+            lastActiveSubsytem = null;
             info.IsDirectory = true;
 
             if (fileName.Length == 1) //root dir
@@ -632,7 +636,16 @@ namespace Sshfs
         DokanError IDokanOperations.GetDiskFreeSpace(out long free, out long total,
                                                      out long used, DokanFileInfo info)
         {
-            Log("GetDiskFreeSpace");
+
+            if (lastActiveSubsytem != null)
+            {
+                IDokanOperations ops = GetSubSystemOperations(lastActiveSubsytem);
+                if (ops != null)
+                {
+                    return ops.GetDiskFreeSpace(out free, out total, out used, info);    
+                }
+            }
+
 
             free = 0;
             total = 1024;
