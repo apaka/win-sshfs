@@ -66,6 +66,7 @@
             this.muButton = new System.Windows.Forms.Button();
             this.saveButton = new System.Windows.Forms.Button();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
+            this.buttonVFSMount = new System.Windows.Forms.Button();
             this.virtualDriveCombo = new System.Windows.Forms.ComboBox();
             this.label9 = new System.Windows.Forms.Label();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
@@ -107,8 +108,8 @@
             this.tableLayoutPanel1.RowCount = 3;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 41F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(583, 418);
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 41F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(583, 461);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // fieldsPanel
@@ -116,7 +117,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 26.10063F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 73.89937F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 10F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 12F));
             this.fieldsPanel.Controls.Add(this.nameBox, 1, 0);
             this.fieldsPanel.Controls.Add(this.label1, 0, 0);
             this.fieldsPanel.Controls.Add(this.hostBox, 1, 1);
@@ -151,7 +152,7 @@
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.fieldsPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.fieldsPanel.Size = new System.Drawing.Size(327, 339);
+            this.fieldsPanel.Size = new System.Drawing.Size(327, 371);
             this.fieldsPanel.TabIndex = 3;
             // 
             // nameBox
@@ -393,7 +394,7 @@
             this.mountPointBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mountPointBox.Location = new System.Drawing.Point(85, 267);
             this.mountPointBox.Name = "mountPointBox";
-            this.mountPointBox.Size = new System.Drawing.Size(228, 20);
+            this.mountPointBox.Size = new System.Drawing.Size(226, 20);
             this.mountPointBox.TabIndex = 18;
             // 
             // driveListView
@@ -408,7 +409,7 @@
             this.driveListView.Location = new System.Drawing.Point(3, 5);
             this.driveListView.MultiSelect = false;
             this.driveListView.Name = "driveListView";
-            this.driveListView.Size = new System.Drawing.Size(244, 339);
+            this.driveListView.Size = new System.Drawing.Size(244, 371);
             this.driveListView.SmallImageList = this.imageList;
             this.driveListView.TabIndex = 0;
             this.driveListView.UseCompatibleStateImageBehavior = false;
@@ -438,7 +439,7 @@
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel2.Controls.Add(this.removeButton, 1, 0);
             this.tableLayoutPanel2.Controls.Add(this.addButton, 0, 0);
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 350);
+            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 382);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
             this.tableLayoutPanel2.RowCount = 1;
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
@@ -482,7 +483,7 @@
             this.buttonPanel.Controls.Add(this.muButton, 1, 0);
             this.buttonPanel.Controls.Add(this.saveButton, 1, 0);
             this.buttonPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.buttonPanel.Location = new System.Drawing.Point(253, 350);
+            this.buttonPanel.Location = new System.Drawing.Point(253, 382);
             this.buttonPanel.Name = "buttonPanel";
             this.buttonPanel.Padding = new System.Windows.Forms.Padding(0, 0, 15, 0);
             this.buttonPanel.RowCount = 1;
@@ -520,21 +521,38 @@
             // 
             // tableLayoutPanel3
             // 
-            this.tableLayoutPanel3.ColumnCount = 2;
-            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33F));
-            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 67F));
+            this.tableLayoutPanel3.ColumnCount = 3;
+            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
+            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 70F));
+            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 94F));
+            this.tableLayoutPanel3.Controls.Add(this.buttonVFSMount, 2, 0);
             this.tableLayoutPanel3.Controls.Add(this.virtualDriveCombo, 1, 0);
             this.tableLayoutPanel3.Controls.Add(this.label9, 0, 0);
             this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 391);
+            this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 423);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
             this.tableLayoutPanel3.RowCount = 1;
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(244, 24);
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(244, 35);
             this.tableLayoutPanel3.TabIndex = 6;
+            // 
+            // buttonVFSMount
+            // 
+            this.buttonVFSMount.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.buttonVFSMount.Image = global::Sshfs.Properties.Resources.mount;
+            this.buttonVFSMount.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.buttonVFSMount.Location = new System.Drawing.Point(153, 3);
+            this.buttonVFSMount.Name = "buttonVFSMount";
+            this.buttonVFSMount.Size = new System.Drawing.Size(88, 29);
+            this.buttonVFSMount.TabIndex = 7;
+            this.buttonVFSMount.Text = "Mount";
+            this.buttonVFSMount.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            this.buttonVFSMount.UseVisualStyleBackColor = true;
+            this.buttonVFSMount.Click += new System.EventHandler(this.buttonVFSMount_Click);
             // 
             // virtualDriveCombo
             // 
+            this.virtualDriveCombo.Dock = System.Windows.Forms.DockStyle.Fill;
             this.virtualDriveCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.virtualDriveCombo.DropDownWidth = 43;
             this.virtualDriveCombo.FormattingEnabled = true;
@@ -542,7 +560,7 @@
             "off"});
             this.virtualDriveCombo.Location = new System.Drawing.Point(83, 3);
             this.virtualDriveCombo.Name = "virtualDriveCombo";
-            this.virtualDriveCombo.Size = new System.Drawing.Size(63, 21);
+            this.virtualDriveCombo.Size = new System.Drawing.Size(64, 21);
             this.virtualDriveCombo.Sorted = true;
             this.virtualDriveCombo.TabIndex = 5;
             this.virtualDriveCombo.SelectedIndexChanged += new System.EventHandler(this.virtualDriveCombo_SelectedIndexChanged);
@@ -553,7 +571,7 @@
             this.label9.Dock = System.Windows.Forms.DockStyle.Left;
             this.label9.Location = new System.Drawing.Point(3, 0);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(65, 24);
+            this.label9.Size = new System.Drawing.Size(65, 35);
             this.label9.TabIndex = 6;
             this.label9.Text = "Virtual drive:";
             this.label9.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -661,7 +679,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(583, 418);
+            this.ClientSize = new System.Drawing.Size(583, 461);
             this.Controls.Add(this.tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -740,6 +758,7 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel3;
         private System.Windows.Forms.ComboBox virtualDriveCombo;
         private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Button buttonVFSMount;
 
 
 

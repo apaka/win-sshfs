@@ -38,6 +38,21 @@ namespace Sshfs
             }
         }
 
+        public static T Load<T>(this T obj, string file) where T : ISerializable
+        {
+            string filepath = datadir.FullName + "\\" + file;
+            if (!File.Exists(filepath)) return default(T);
+
+            var xmlSerializer = new DataContractSerializer(typeof(IEnumerable<T>));
+            
+            using (
+                var stream = File.Open(filepath, FileMode.OpenOrCreate,
+                                                            FileAccess.Read))
+            {
+                return (T)xmlSerializer.ReadObject(stream);
+            }
+        }
+
         public static void Presist<T>(this List<T> list, string file, bool delete = false) where T : ISerializable
 
         {
@@ -57,6 +72,27 @@ namespace Sshfs
                 }
             }
         }
+
+
+        public static void Presist<T>(this T obj, string file, bool delete = false) where T : ISerializable
+        {
+            string filepath = datadir.FullName + "\\" + file;
+            if (delete)
+            {
+                File.Delete(filepath);
+            }
+            else
+            {
+                var xmlSerializer = new DataContractSerializer(typeof(List<T>));
+                using (
+                    var stream = File.Open(filepath, FileMode.Create,
+                                                                FileAccess.Write))
+                {
+                    xmlSerializer.WriteObject(stream, obj);
+                }
+            }
+        }
+
 
         public static string ProtectString(string stringToProtect)
         {

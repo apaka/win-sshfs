@@ -25,6 +25,7 @@ namespace Sshfs
     {
         private readonly StringBuilder _balloonText = new StringBuilder(255);
         private readonly List<SftpDrive> _drives = new List<SftpDrive>();
+        private readonly List<String> _configVars = new List<String>();
         private readonly Regex _regex = new Regex(@"^New Drive\s\d{1,2}$", RegexOptions.Compiled);
         private readonly Queue<SftpDrive> _suspendedDrives = new Queue<SftpDrive>();
 
@@ -74,12 +75,20 @@ namespace Sshfs
 
             // _drives.Presist("config.xml",true);            
 
-            virtualDrive = new VirtualDrive
+
+            virtualDrive = virtualDrive.Load("vfs.xml");
+            if (virtualDrive == null)
             {
-                Letter = 'Z'
-            };
+                virtualDrive = new VirtualDrive
+                {
+                    Letter = 'Z'
+                };
+            }
+            virtualDrive.StatusChanged += drive_VFSStatusChanged;
+
             updateVirtualDriveCombo();
             virtualDrive.Mount();
+            buttonVFSupdate();
 
 
             _drives.Load("config.xml");
@@ -226,6 +235,7 @@ namespace Sshfs
                 if (_dirty)
                 {
                     _drives.Presist("config.xml");
+                    //virtualDrive.per
                 }
                 notifyIcon.Visible = false;
             }
@@ -251,7 +261,8 @@ namespace Sshfs
                                 Name = String.Format("New Drive {0}", ++_namecount),
                                 Port = 22,
                                 Root = ".",
-                                Letter = letter
+                                Letter = letter,
+                                MountPoint = ""
                             };
             drive.StatusChanged += drive_StatusChanged;
             _drives.Add(drive);
@@ -605,7 +616,7 @@ namespace Sshfs
         {
             SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
             
-          //  _drives.Presist("config.xml");
+            //_drives.Presist("config.xml");
            ;
 
             Parallel.ForEach(_drives.Where(d => d.Status != DriveStatus.Unmounted), d =>
@@ -614,6 +625,7 @@ namespace Sshfs
                                                                                                 drive_StatusChanged;
                                                                                             d.Unmount();
                                                                                         });
+            virtualDrive.Unmount();
             base.OnFormClosed(e);
         }
 
@@ -677,22 +689,11 @@ namespace Sshfs
         {
             if (_updateLockvirtualDriveBox)
                 return;
+
+            virtualDrive.Letter = virtualDriveCombo.Text[0];
+            virtualDrive.Presist("vfs.xml");
+
             _updateLockvirtualDriveBox = true; ;
-
-            if (virtualDrive.Letter != virtualDriveCombo.Text[0])
-            {
-                virtualDrive.Letter = virtualDriveCombo.Text[0];
-
-                //TODO: this shoud be in thread - blocks gui:
-                if (virtualDrive != null && (virtualDrive.Status == DriveStatus.Mounted))
-                    virtualDrive.Unmount();
-                
-                if (virtualDrive != null && virtualDrive.Letter != ' ')
-                {
-                    virtualDrive.Letter = virtualDrive.Letter;
-                    virtualDrive.Mount();
-                }
-            }
 
             updateLetterBoxCombo(null);
 
@@ -709,5 +710,42 @@ namespace Sshfs
             this.updateVirtualDriveCombo();
             _updateLockLetterBox = false;
         }
+
+        private void buttonVFSMount_Click(object sender, EventArgs e)
+        {
+            if (virtualDrive == null) return;//hmm
+
+            if (virtualDrive.Status == DriveStatus.Unmounted)
+            {
+                virtualDrive.Mount();
+            }else if (virtualDrive.Status == DriveStatus.Mounted)
+            {
+                virtualDrive.Unmount();
+            }
+
+            buttonVFSMount.Enabled = false;
+        }
+
+        private void buttonVFSupdate()
+        {
+            BeginInvoke(new MethodInvoker(() =>
+            {
+                buttonVFSMount.Text = virtualDrive.Status == DriveStatus.Mounted
+                                        ? "Unmount"
+                                        : "Mount";
+                buttonVFSMount.Image = virtualDrive.Status == DriveStatus.Mounted
+                                         ? Resources.unmount
+                                         : Resources.mount;
+                buttonVFSMount.Enabled = true;
+            }));
+        }
+
+        private void drive_VFSStatusChanged(object sender, EventArgs e)
+        {
+            var drive = sender as SftpDrive;
+            buttonVFSupdate();
+        }
+
+
     }
 }

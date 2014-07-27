@@ -507,6 +507,8 @@ namespace Sshfs
             foreach (SftpDrive subdrive in _subsytems)
             {
                 string mp = subdrive.MountPoint; //  mp1 || mp1\mp2 ...
+                if (mp.Length == 0)
+                    continue;
 
                 if (path.Length > 0) //not root dir
                 {
@@ -612,6 +614,8 @@ namespace Sshfs
                 SftpDrive drive2 = this.GetDriveByMountPoint(newName, out newName);
                 if (drive2 != drive)
                 {
+                    //This is server2server move - Total commander handles this by copy&delete, explorer ends with error
+                    //background direct copy between 2 sftp is nice but not real
                     return DokanError.ErrorNotImplemented;
                 }
 

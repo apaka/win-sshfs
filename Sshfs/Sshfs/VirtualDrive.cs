@@ -17,7 +17,7 @@ using System.Collections.Generic;
 namespace Sshfs
 {
     [Serializable]
-    public class VirtualDrive : IDisposable
+    public class VirtualDrive : IDisposable, ISerializable
     {
         private readonly CancellationTokenSource _mountCancel = new CancellationTokenSource();
         private readonly AutoResetEvent _pauseEvent = new AutoResetEvent(false);
@@ -27,6 +27,7 @@ namespace Sshfs
         private bool _exeptionThrown;
 
         private VirtualFilesystem _filesystem;
+        private List<SftpDrive> _drives = new List<SftpDrive>();
 
         public string Name { get; set; }
 
@@ -43,12 +44,16 @@ namespace Sshfs
 
         internal void AddSubFS(SftpDrive sftpDrive)
         {
-            _filesystem.AddSubFS(sftpDrive);
+            _drives.Add(sftpDrive);
+            if (_filesystem!=null)
+                _filesystem.AddSubFS(sftpDrive);
         }
 
         internal void RemoveSubFS(SftpDrive sftpDrive)
         {
-            _filesystem.RemoveSubFS(sftpDrive);
+            _drives.Remove(sftpDrive);
+            if (_filesystem!=null)
+                _filesystem.RemoveSubFS(sftpDrive);
         }
 
 
@@ -100,8 +105,12 @@ namespace Sshfs
                 try
                 {
                     _filesystem = new VirtualFilesystem("WinSshFS spool");
-                    _filesystem.Mount(String.Format("{0}:\\", Letter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
+                    foreach (SftpDrive drive in _drives)
+                    {
+                        _filesystem.AddSubFS(drive);
+                    }
 
+                    _filesystem.Mount(String.Format("{0}:\\", Letter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
                 }
                 catch (Exception e)
                 {
@@ -222,6 +231,23 @@ namespace Sshfs
             {
                 _filesystem = null;
             }
+        }
+
+        #endregion
+
+        #region Implementation of ISerializable
+
+        public VirtualDrive(SerializationInfo info,
+                         StreamingContext context)
+        {
+            Letter = info.GetChar("letter");
+        }
+
+
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("letter", Letter);
         }
 
         #endregion
