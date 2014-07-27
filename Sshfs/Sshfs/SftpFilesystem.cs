@@ -281,6 +281,11 @@ namespace Sshfs
                                       attributes.OthersCanExecute));
         }
 
+        private bool GroupCanControl(SftpFileAttributes attributes)
+        {
+            return attributes.GroupCanWrite || attributes.OthersCanWrite;
+        }
+
         private SftpFileAttributes GetAttributes(string path)
         {
             var sftpLStatAttributes = _sftpSession.RequestLStat(path, true);
@@ -720,7 +725,7 @@ namespace Sshfs
                 fileInfo.Attributes |= FileAttributes.Hidden;
             }
 
-            if (!UserCanWrite(sftpFileAttributes))
+            if (!GroupCanControl(sftpFileAttributes))
             {
                 fileInfo.Attributes |= FileAttributes.ReadOnly;
             }
@@ -834,7 +839,7 @@ namespace Sshfs
                             }
 
                             if (
-                                !UserCanWrite(
+                                !GroupCanControl(
                                     sftpFileAttributes))
                             {
                                 fileInformation.Attributes
@@ -934,7 +939,38 @@ namespace Sshfs
         DokanError IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
             //Log("TrySetAttributes:{0}\n{1};", fileName, attributes);
-            LogFSActionError("SetFileAttr", fileName, (SftpContext)info.Context, "NI Attrs:{0}", attributes);
+            LogFSActionError("SetFileAttr", fileName, (SftpContext)info.Context, "Attrs:{0}", attributes);
+
+            //get actual attributes
+            string path = GetUnixPath(fileName);
+            SftpFileAttributes currentattr = GetAttributes(path);
+
+            if (attributes.HasFlag(FileAttributes.ReadOnly) && GroupCanControl(currentattr))
+            {
+                LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group right off");
+                //turn off group and other rights
+                currentattr.GroupCanWrite = false;
+                if (currentattr.IsDirectory)
+                    currentattr.GroupCanExecute = false;
+                //currentattr.OthersCanWrite = false; this is responsiblity of those whom set this one
+
+                _sftpSession.RequestSetStat(GetUnixPath(fileName), currentattr);
+                CacheReset(path);
+                return DokanError.ErrorSuccess;
+            }
+            if (!attributes.HasFlag(FileAttributes.ReadOnly) && !GroupCanControl(currentattr))
+            {
+                LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group right on");
+                //turn on group rights
+                currentattr.GroupCanWrite = true;
+                if (currentattr.IsDirectory)
+                    currentattr.GroupCanExecute = true;
+
+                _sftpSession.RequestSetStat(GetUnixPath(fileName), currentattr);
+                CacheReset(path);
+                return DokanError.ErrorSuccess;
+            }
+            
 
             return DokanError.ErrorSuccess;
         }
@@ -1065,7 +1101,7 @@ namespace Sshfs
                 try
                 {
                     _sftpSession.RequestRename(oldpath, newpath);
-                    InvalidateParentCache(oldName);
+                    InvalidateParentCache(oldName);//todo:unix vs win path problem?
                     InvalidateParentCache(newName);
                     CacheReset(oldpath);
                 }
