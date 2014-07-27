@@ -115,7 +115,13 @@ namespace Sshfs
             if (drive != null)
             {
                 LogFSActionSuccess("OpenFile", fileName, drive, "Mode:{0} NonVFS", mode);
-                return GetSubSystemOperations(drive).CreateFile(fileName, access, share, mode, options, attributes, info);
+                IDokanOperations idops = GetSubSystemOperations(drive);
+                if (idops == null)
+                {
+                    //this happens if mounting failed
+                    return DokanError.ErrorAccessDenied;
+                }
+                return idops.CreateFile(fileName, access, share, mode, options, attributes, info);
             }
 
             //check against mountpoints if virtual dir exists
@@ -185,31 +191,48 @@ namespace Sshfs
             {
                 try
                 {
+                    LogFSActionInit("MOUNT", "", drive, "Mounting...");
                     drive.Mount();
                 }
                 catch (Exception e)
                 {
-                    Log("VFS: Mount error: {0}", e.Message);
+                    if (e.Message == "Pageant not running")
+                    {
 
-                    //maybe failed because of letter blocked:
-                    char l = drive.Letter;
-                    drive.Letter = ' ';
-                    try
-                    {
-                        drive.Mount();
-                        drive.Letter = l;
-                    }
-                    catch
-                    {
-                        //connection error
-                        drive.Letter = l;
-                        Log("VFS: Mount error: {0}", e.Message);
                         return null;
                     }
+
+                    LogFSActionError("MOUNT", "", drive, "Mounting failed: {0}",e.Message);
+                    //Log("VFS: Mount error: {0}", e.Message);
+
+                    //maybe failed because of letter blocked, but we dont need the letter:
+                    if (drive.Letter != ' ')
+                    {
+                        LogFSActionError("MOUNT", "", drive, "Trying without mounting drive {0}", drive.Letter);
+                        char l = drive.Letter;
+                        drive.Letter = ' ';
+                        try
+                        {
+                            drive.Mount();
+                            drive.Letter = l;
+                        }
+                        catch
+                        {
+                            LogFSActionError("MOUNT", "", drive, "Mounting failed again: {0}", e.Message);
+                            //connection error
+                            drive.Letter = l;
+                            //Log("VFS: Mount error: {0}", e.Message);
+                            return null;
+                        }
+                    }
+                    else
+                    {
+
+                        return null;
+                    }
+
                 }
             }
-            if (drive == null)
-                return null;
 
             return ((IDokanOperations)drive._filesystem);
         }
@@ -226,8 +249,8 @@ namespace Sshfs
                 IDokanOperations ops = GetSubSystemOperations(drive);
                 if (ops == null)
                 {
-                    LogFSActionError("OpenDir", fileName, drive, "Strange error, ops not found");
-                    return DokanError.ErrorError;
+                    LogFSActionError("OpenDir", fileName, drive, "Cannot open, mount failed?");
+                    return DokanError.ErrorAccessDenied;
                 }
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, subsytem");
                 return ops.OpenDirectory(fileName, info);
@@ -361,7 +384,7 @@ namespace Sshfs
             fileInfo = new FileInformation
             {
                 Attributes =
-                    FileAttributes.NotContentIndexed | FileAttributes.Directory,
+                    FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.Offline | FileAttributes.System,
                 FileName = Path.GetFileName(fileName), //String.Empty,
                 // GetInfo info doesn't use it maybe for sorting .
                 CreationTime = DateTime.Now,
@@ -455,7 +478,7 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
+                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.Offline | FileAttributes.System;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;
@@ -513,7 +536,7 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.Directory | FileAttributes.Offline;
+                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.Offline | FileAttributes.System;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;

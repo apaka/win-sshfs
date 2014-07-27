@@ -10,6 +10,8 @@ namespace Sshfs
 {
     internal static class Program
     {
+        static SftpManagerApplication app;
+
         /// <summary>
         ///   The main entry point for the application.
         /// </summary>
@@ -19,9 +21,12 @@ namespace Sshfs
 
 #if DEBUG
             Debug.AutoFlush = true;
-            Debug.Listeners.Add(new DelimitedListTraceListener(String.Format("{0}\\log{1:yyyy-MM-dd-HH-mm-ss}.txt",Environment.CurrentDirectory,DateTime.Now), "debug"));
+            Debug.Listeners.Clear();
+            //Debug.Listeners.Add(new DelimitedListTraceListener(String.Format("{0}\\log{1:yyyy-MM-dd-HH-mm-ss}.txt",Environment.CurrentDirectory,DateTime.Now), "debug"));
+            Debug.Listeners.Add(new DelimitedListTraceListener(Environment.CurrentDirectory+"\\last.log", "debug"));
 #endif
-            new SftpManagerApplication().Run(args);
+            SftpManagerApplication app = new SftpManagerApplication();
+            app.Run(args);
         }
     }
 }

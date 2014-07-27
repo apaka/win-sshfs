@@ -97,7 +97,7 @@ namespace Sshfs
 
         private void SetupFilesystem()
         {
-            Debug.WriteLine("SetupFilesystem");
+            Debug.WriteLine("SetupFilesystem {0},{1},{2},{3}",Host,Port,Username,ConnectionType.ToString());
 
             ConnectionInfo info;
             switch (ConnectionType)
@@ -176,7 +176,7 @@ namespace Sshfs
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void Mount()
         {
-            Debug.WriteLine("Mount");
+            //Debug.WriteLine("Mount");
            
 
             if (Directory.GetLogicalDrives().Any(drive=>drive[0]==Letter))

@@ -139,6 +139,50 @@ namespace Sshfs
 
         #endregion
 
+        #region Logging
+        [Conditional("DEBUG")]
+        private void Log(string format, params object[] arg)
+        {
+            if (_debugMode)
+            {
+                Console.WriteLine(format, arg);
+            }
+            Debug.AutoFlush = false;
+            Debug.Write(DateTime.Now.ToLongTimeString() + " ");
+            Debug.WriteLine(format, arg);
+            Debug.Flush();
+        }
+
+        [Conditional("DEBUG")]
+        private void LogFSAction(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + (context == null ? "[-------]" : context.ToString()) + "\t" + action + "\t" + _volumeLabel + "\t" + path + "\t");
+            Debug.WriteLine(format, arg);
+        }
+
+        [Conditional("DEBUG")]
+        private void LogFSActionInit(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "^", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionSuccess(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "$", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionError(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "!", path, context, format, arg);
+        }
+        [Conditional("DEBUG")]
+        private void LogFSActionOther(String action, String path, SftpContext context, string format, params object[] arg)
+        {
+            LogFSAction(action + "|", path, context, format, arg);
+        }
+
+        #endregion
+
         #region Cache
 
         private void CacheAddAttr(string path, SftpFileAttributes attributes, DateTimeOffset expiration)
@@ -163,7 +207,7 @@ namespace Sshfs
         private SftpFileAttributes CacheGetAttr(string path)
         {
             SftpFileAttributes attributes = _cache.Get(_volumeLabel + "A:" + path) as SftpFileAttributes;
-            LogFSActionSuccess("CacheGetAttr", path, null, "Size:{0}", (attributes == null) ? "miss" : attributes.Size.ToString());
+            LogFSActionSuccess("CacheGetAttr", path, null, "Size:{0} Group write:{1} ", (attributes == null) ? "miss" : attributes.Size.ToString(), (attributes == null ? "miss" : attributes.GroupCanWrite.ToString()) );
             return attributes;
         }
 
@@ -188,6 +232,21 @@ namespace Sshfs
             _cache.Remove(_volumeLabel + "D:" + path);
         }
 
+        private void CacheResetParent(string path)
+        {
+            int index = path.LastIndexOf('/');
+            if (index > 0)
+            {
+                //_cache.Remove(index != 0 ? fileName.Substring(0, index) : "\\");
+                this.CacheReset(path.Substring(0, index));
+            }
+            else
+            {
+                this.CacheReset("/");
+            }
+        }
+
+
         #endregion
 
         #region  Methods
@@ -198,49 +257,6 @@ namespace Sshfs
             return String.Format("{0}{1}", _rootpath, path.Replace('\\', '/').Replace("//","/"));
         }
 
-        #region Logging
-        [Conditional("DEBUG")]
-        private void Log(string format, params object[] arg)
-        {
-            if (_debugMode)
-            {
-                Console.WriteLine(format, arg);
-            }
-            Debug.AutoFlush = false;
-            Debug.Write(DateTime.Now.ToLongTimeString() + " ");
-            Debug.WriteLine(format, arg);
-            Debug.Flush();
-        }
-
-        [Conditional("DEBUG")]
-        private void LogFSAction(String action, String path, SftpContext context, string format, params object[] arg)
-        {
-            Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + (context == null ? "[-------]" : context.ToString()) + "\t" + action + "\t" + _volumeLabel +"\t" +path + "\t");
-            Debug.WriteLine(format, arg);
-        }
-
-        [Conditional("DEBUG")]
-        private void LogFSActionInit(String action, String path, SftpContext context, string format, params object[] arg)
-        {
-            LogFSAction(action+"^", path, context, format, arg);
-        }
-        [Conditional("DEBUG")]
-        private void LogFSActionSuccess(String action, String path, SftpContext context, string format, params object[] arg)
-        {
-            LogFSAction(action + "$", path, context, format, arg);
-        }
-        [Conditional("DEBUG")]
-        private void LogFSActionError(String action, String path, SftpContext context, string format, params object[] arg)
-        {
-            LogFSAction(action + "!", path, context, format, arg);
-        }
-        [Conditional("DEBUG")]
-        private void LogFSActionOther(String action, String path, SftpContext context, string format, params object[] arg)
-        {
-            LogFSAction(action + "|", path, context, format, arg);
-        }
-
-        #endregion
         private IEnumerable<int> GetUserGroupsIds()
         {
             using (var cmd = new SshCommand(Session, "id -G "))
@@ -281,9 +297,11 @@ namespace Sshfs
                                       attributes.OthersCanExecute));
         }
 
-        private bool GroupCanControl(SftpFileAttributes attributes)
+        private bool GroupRightsSameAsOwner(SftpFileAttributes attributes)
         {
-            return attributes.GroupCanWrite || attributes.OthersCanWrite;
+            return (attributes.GroupCanWrite == attributes.OwnerCanWrite)
+                    && (attributes.GroupCanRead == attributes.OwnerCanRead)
+                    && (attributes.GroupCanExecute == attributes.OwnerCanExecute);
         }
 
         private SftpFileAttributes GetAttributes(string path)
@@ -295,13 +313,6 @@ namespace Sshfs
             }
             var sftpStatAttributes = _sftpSession.RequestStat(path, true);
             return sftpStatAttributes ?? sftpLStatAttributes;
-        }
-
-        private void InvalidateParentCache(string fileName)
-        {
-            int index = fileName.LastIndexOf('\\');
-            //_cache.Remove(index != 0 ? fileName.Substring(0, index) : "\\");
-            this.CacheReset( GetUnixPath(index != 0 ? fileName.Substring(0, index) : "\\"));
         }
 
         #endregion
@@ -366,18 +377,18 @@ namespace Sshfs
                     if (sftpFileAttributes != null)
                         return DokanError.ErrorAlreadyExists;
 
-                    InvalidateParentCache(fileName); // cache invalidate
+                    CacheResetParent(path);
                     break;
                 case FileMode.Truncate:
                     if (sftpFileAttributes == null)
                         return DokanError.ErrorFileNotFound;
-                    InvalidateParentCache(fileName);
+                    CacheResetParent(path);
                     //_cache.Remove(path);
                     this.CacheReset(path);
                     break;
                 default:
 
-                    InvalidateParentCache(fileName);
+                    CacheResetParent(path);
                     break;
             }
             //Log("NotJustInfo:{0}-{1}", info.Context, mode);
@@ -474,11 +485,11 @@ namespace Sshfs
             //Log("CreateDir:{0}", fileName);
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context, "");
 
-
+            string path = GetUnixPath(fileName);
             try
             {
-                _sftpSession.RequestMkDir(GetUnixPath(fileName));
-                InvalidateParentCache(fileName); //invalidate dircahe of the parent
+                _sftpSession.RequestMkDir(path);
+                CacheResetParent(path);
             }
             catch (SftpPermissionDeniedException)
             {
@@ -524,9 +535,8 @@ namespace Sshfs
                 {
                     _sftpSession.RequestRemove(path);
                 }
-                InvalidateParentCache(fileName);
-                //_cache.Remove(path);
                 CacheReset(path);
+                CacheResetParent(path);
             }
 
             LogFSActionSuccess("Cleanup", fileName, (SftpContext)info.Context, "");
@@ -725,9 +735,9 @@ namespace Sshfs
                 fileInfo.Attributes |= FileAttributes.Hidden;
             }
 
-            if (!GroupCanControl(sftpFileAttributes))
+            if (GroupRightsSameAsOwner(sftpFileAttributes))
             {
-                fileInfo.Attributes |= FileAttributes.ReadOnly;
+                fileInfo.Attributes |= FileAttributes.Archive;
             }
             if (_useOfflineAttribute)
             {
@@ -839,13 +849,12 @@ namespace Sshfs
                             }
 
                             if (
-                                !GroupCanControl(
+                                GroupRightsSameAsOwner(
                                     sftpFileAttributes))
                             {
                                 fileInformation.Attributes
                                     |=
-                                    FileAttributes.
-                                        ReadOnly;
+                                    FileAttributes.Archive;
                             }
                             if (_useOfflineAttribute)
                             {
@@ -938,39 +947,59 @@ namespace Sshfs
 
         DokanError IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-            //Log("TrySetAttributes:{0}\n{1};", fileName, attributes);
             LogFSActionError("SetFileAttr", fileName, (SftpContext)info.Context, "Attrs:{0}", attributes);
 
             //get actual attributes
             string path = GetUnixPath(fileName);
             SftpFileAttributes currentattr = GetAttributes(path);
 
-            if (attributes.HasFlag(FileAttributes.ReadOnly) && GroupCanControl(currentattr))
-            {
-                LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group right off");
-                //turn off group and other rights
-                currentattr.GroupCanWrite = false;
-                if (currentattr.IsDirectory)
-                    currentattr.GroupCanExecute = false;
-                //currentattr.OthersCanWrite = false; this is responsiblity of those whom set this one
-
-                _sftpSession.RequestSetStat(GetUnixPath(fileName), currentattr);
-                CacheReset(path);
-                return DokanError.ErrorSuccess;
-            }
-            if (!attributes.HasFlag(FileAttributes.ReadOnly) && !GroupCanControl(currentattr))
-            {
-                LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group right on");
-                //turn on group rights
-                currentattr.GroupCanWrite = true;
-                if (currentattr.IsDirectory)
-                    currentattr.GroupCanExecute = true;
-
-                _sftpSession.RequestSetStat(GetUnixPath(fileName), currentattr);
-                CacheReset(path);
-                return DokanError.ErrorSuccess;
-            }
             
+            //rules for changes:
+            bool rightsupdate = false;
+                if (attributes.HasFlag(FileAttributes.Archive) && !GroupRightsSameAsOwner(currentattr))
+                {
+                    LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group rights to owner");
+                    //Archive goes ON, rights of group same as owner:
+                    currentattr.GroupCanWrite = currentattr.OwnerCanWrite;
+                    currentattr.GroupCanExecute = currentattr.OwnerCanExecute;
+                    currentattr.GroupCanRead = currentattr.OwnerCanRead;
+                    rightsupdate = true;
+                }
+                if (!attributes.HasFlag(FileAttributes.Archive) && GroupRightsSameAsOwner(currentattr))
+                {
+                    LogFSActionSuccess("SetFileAttr", fileName, (SftpContext)info.Context, "Setting group rights to others");
+                    //Archive goes OFF, rights of group same as others:
+                    currentattr.GroupCanWrite = currentattr.OthersCanWrite;
+                    currentattr.GroupCanExecute = currentattr.OthersCanExecute;
+                    currentattr.GroupCanRead = currentattr.OthersCanRead;
+                    rightsupdate = true;
+                }
+
+
+            //apply new settings:
+            if (rightsupdate)
+            {
+                //apply and reset cache
+                try
+                {
+                    _sftpSession.RequestSetStat(GetUnixPath(fileName), currentattr);
+                }
+                catch(SftpPermissionDeniedException e)
+                {
+                    return DokanError.ErrorAccessDenied;
+                }
+                CacheReset(path);
+                CacheResetParent(path); //parent cache need reset also
+                
+                //if context exists, update new rights manually is needed
+                SftpContext context = (SftpContext)info.Context;
+                if (info.Context != null)
+                {
+                    context.Attributes.GroupCanWrite = currentattr.GroupCanWrite;
+                    context.Attributes.GroupCanExecute = currentattr.GroupCanExecute;
+                    context.Attributes.GroupCanRead = currentattr.GroupCanRead;
+                }
+            }
 
             return DokanError.ErrorSuccess;
         }
@@ -1101,8 +1130,8 @@ namespace Sshfs
                 try
                 {
                     _sftpSession.RequestRename(oldpath, newpath);
-                    InvalidateParentCache(oldName);//todo:unix vs win path problem?
-                    InvalidateParentCache(newName);
+                    CacheResetParent(oldpath);
+                    CacheResetParent(newpath);
                     CacheReset(oldpath);
                 }
                 catch (SftpPermissionDeniedException)
@@ -1133,10 +1162,9 @@ namespace Sshfs
                         _sftpSession.RequestRename(oldpath, newpath);
                     }
 
-
-                    InvalidateParentCache(oldName);
-                    InvalidateParentCache(newName);
                     CacheReset(oldpath);
+                    CacheResetParent(oldpath);
+                    CacheResetParent(newpath);
                 }
                 catch (SftpPermissionDeniedException)
                 {
@@ -1156,7 +1184,7 @@ namespace Sshfs
             //Log("SetEnd");
             LogFSActionInit("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
-            InvalidateParentCache(fileName);
+            CacheResetParent(GetUnixPath(fileName));
             LogFSActionSuccess("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
             return DokanError.ErrorSuccess;
         }
@@ -1166,7 +1194,7 @@ namespace Sshfs
             //Log("SetSize");
             LogFSActionInit("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
-            InvalidateParentCache(fileName);
+            CacheResetParent(GetUnixPath(fileName));
             LogFSActionSuccess("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
             return DokanError.ErrorSuccess;
         }
