@@ -329,7 +329,8 @@ namespace Sshfs
                 return DokanError.ErrorFileNotFound;
             }
 
-            LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
+            LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1}", mode,options);
+            
 
             string path = GetUnixPath(fileName);
             //  var  sftpFileAttributes = GetAttributes(path);
@@ -362,7 +363,13 @@ namespace Sshfs
                         {
                             //Log("JustInfo:{0},{1}", fileName, sftpFileAttributes.IsDirectory);
                             info.IsDirectory = sftpFileAttributes.IsDirectory;
-                            info.Context = new SftpContext(sftpFileAttributes);
+                            
+                            if (options.HasFlag(FileOptions.DeleteOnClose))
+                            {
+                                info.DeleteOnClose = true;//dosnt work, is reset somewhere inside
+                            }
+                            info.Context = new SftpContext(sftpFileAttributes, options.HasFlag(FileOptions.DeleteOnClose));
+
                             LogFSActionOther("OpenFile", fileName, (SftpContext)info.Context, "Dir open or get attrs");
                             return DokanError.ErrorSuccess;
                         }
@@ -510,14 +517,18 @@ namespace Sshfs
             //Log("Cleanup:{0},Delete:{1}", info.Context,info.DeleteOnClose);
             LogFSActionInit("Cleanup", fileName, (SftpContext)info.Context, "");
 
+            bool deleteOnCloseWorkAround = false;
+
             if (info.Context != null)
             {
+                deleteOnCloseWorkAround = ((SftpContext)info.Context).deleteOnCloseWorkaround;
+
                 (info.Context as SftpContext).Release();
 
                 info.Context = null;
             }
 
-            if (info.DeleteOnClose)
+            if (info.DeleteOnClose || deleteOnCloseWorkAround)
             {
                 string path = GetUnixPath(fileName);
                 if (info.IsDirectory)
@@ -547,7 +558,7 @@ namespace Sshfs
         {
             //Log("Close:{0}", info.Context);
             LogFSActionInit("CloseFile", fileName, (SftpContext)info.Context, "");
-            //???flush?
+            
             if (info.Context != null)
             {
                 SftpContext context = (SftpContext) info.Context;
@@ -557,11 +568,9 @@ namespace Sshfs
                     (info.Context as SftpContext).Stream.Dispose();
                 }
             }
-            //_cache.Remove(fileName);
 
-            /* cache reset for dir close is not good idea, will read it verz soon probablz again
-            CacheReset(GetUnixPath(fileName));
-            */
+
+            /* cache reset for dir close is not good idea, will read it verz soon probablz again,          */
             if (!info.IsDirectory)
             {
                 CacheReset(GetUnixPath(fileName));
@@ -838,7 +847,7 @@ namespace Sshfs
                                     |=
                                     FileAttributes.
                                         Directory;
-                                fileInformation.Length = 0;
+                                fileInformation.Length = 4096;//test
                             }
                             else
                             {

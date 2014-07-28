@@ -15,7 +15,7 @@ namespace DokanNet
         private readonly IntPtr _dokanOptions;
         private readonly uint _processId;
         [MarshalAs(UnmanagedType.U1)] private bool _isDirectory;
-        [MarshalAs(UnmanagedType.U1)] private bool _deleteOnClose;
+        [MarshalAs(UnmanagedType.U1)] private byte _deleteOnClose;
         [MarshalAs(UnmanagedType.U1)] private bool _pagingIo;
         [MarshalAs(UnmanagedType.U1)] private bool _synchronousIo;
         [MarshalAs(UnmanagedType.U1)] private bool _nocache;
@@ -54,8 +54,8 @@ namespace DokanNet
 
         public bool DeleteOnClose
         {
-            get { return _deleteOnClose; }
-            set { _deleteOnClose = value; }
+            get { return _deleteOnClose>0; }
+            set { _deleteOnClose = value ? byte.MaxValue : byte.MinValue ; }
         }
 
         public bool PagingIo
