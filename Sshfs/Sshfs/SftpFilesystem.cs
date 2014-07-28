@@ -559,9 +559,13 @@ namespace Sshfs
             }
             //_cache.Remove(fileName);
 
-            /* cache reset for dir close is not good idea, for files its probably also nto problem
+            /* cache reset for dir close is not good idea, will read it verz soon probablz again
             CacheReset(GetUnixPath(fileName));
             */
+            if (!info.IsDirectory)
+            {
+                CacheReset(GetUnixPath(fileName));
+            }
             
 
             return DokanError.ErrorSuccess;
