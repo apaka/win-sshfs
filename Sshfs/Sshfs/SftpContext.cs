@@ -26,9 +26,17 @@ namespace Sshfs
 
         private SftpContextStream _stream;
 
+        public bool deleteOnCloseWorkaround = false;
+
         public SftpContext(SftpFileAttributes attributes)
         {
             _attributes = attributes;
+        }
+
+        public SftpContext(SftpFileAttributes attributes, bool aDeleteOnCloseWorkaround)
+        {
+            _attributes = attributes;
+            this.deleteOnCloseWorkaround = aDeleteOnCloseWorkaround;
         }
 
         public SftpContext(SftpSession session, string path, FileMode mode, FileAccess access,

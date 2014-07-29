@@ -117,7 +117,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 26.10063F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 73.89937F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 12F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 13F));
             this.fieldsPanel.Controls.Add(this.nameBox, 1, 0);
             this.fieldsPanel.Controls.Add(this.label1, 0, 0);
             this.fieldsPanel.Controls.Add(this.hostBox, 1, 1);
@@ -157,7 +157,7 @@
             // 
             // nameBox
             // 
-            this.nameBox.Location = new System.Drawing.Point(85, 3);
+            this.nameBox.Location = new System.Drawing.Point(84, 3);
             this.nameBox.Name = "nameBox";
             this.nameBox.Size = new System.Drawing.Size(186, 20);
             this.nameBox.TabIndex = 0;
@@ -176,7 +176,7 @@
             // 
             // hostBox
             // 
-            this.hostBox.Location = new System.Drawing.Point(85, 32);
+            this.hostBox.Location = new System.Drawing.Point(84, 32);
             this.hostBox.Name = "hostBox";
             this.hostBox.Size = new System.Drawing.Size(186, 20);
             this.hostBox.TabIndex = 1;
@@ -195,7 +195,7 @@
             // 
             // portBox
             // 
-            this.portBox.Location = new System.Drawing.Point(85, 62);
+            this.portBox.Location = new System.Drawing.Point(84, 62);
             this.portBox.Name = "portBox";
             this.portBox.Size = new System.Drawing.Size(68, 20);
             this.portBox.TabIndex = 2;
@@ -224,7 +224,7 @@
             // 
             // userBox
             // 
-            this.userBox.Location = new System.Drawing.Point(85, 90);
+            this.userBox.Location = new System.Drawing.Point(84, 90);
             this.userBox.Name = "userBox";
             this.userBox.Size = new System.Drawing.Size(186, 20);
             this.userBox.TabIndex = 3;
@@ -238,7 +238,7 @@
             "Password",
             "PrivateKey",
             "Pageant"});
-            this.authCombo.Location = new System.Drawing.Point(85, 119);
+            this.authCombo.Location = new System.Drawing.Point(84, 119);
             this.authCombo.Name = "authCombo";
             this.authCombo.Size = new System.Drawing.Size(121, 21);
             this.authCombo.TabIndex = 4;
@@ -270,7 +270,7 @@
             // 
             this.panel1.Controls.Add(this.letterBox);
             this.panel1.Controls.Add(this.mountCheck);
-            this.panel1.Location = new System.Drawing.Point(85, 238);
+            this.panel1.Location = new System.Drawing.Point(84, 238);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(182, 23);
             this.panel1.TabIndex = 12;
@@ -304,7 +304,7 @@
             this.directoryBox.Items.AddRange(new object[] {
             ".",
             "/"});
-            this.directoryBox.Location = new System.Drawing.Point(85, 211);
+            this.directoryBox.Location = new System.Drawing.Point(84, 211);
             this.directoryBox.Name = "directoryBox";
             this.directoryBox.Size = new System.Drawing.Size(186, 21);
             this.directoryBox.TabIndex = 8;
@@ -326,7 +326,7 @@
             this.panel2.Controls.Add(this.privateKeyBox);
             this.panel2.Controls.Add(this.privateKeyButton);
             this.panel2.Controls.Add(this.passwordBox);
-            this.panel2.Location = new System.Drawing.Point(85, 148);
+            this.panel2.Location = new System.Drawing.Point(84, 148);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(186, 57);
             this.panel2.TabIndex = 15;
@@ -392,7 +392,7 @@
             // mountPointBox
             // 
             this.mountPointBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mountPointBox.Location = new System.Drawing.Point(85, 267);
+            this.mountPointBox.Location = new System.Drawing.Point(84, 267);
             this.mountPointBox.Name = "mountPointBox";
             this.mountPointBox.Size = new System.Drawing.Size(226, 20);
             this.mountPointBox.TabIndex = 18;
