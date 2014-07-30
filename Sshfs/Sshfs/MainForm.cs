@@ -97,8 +97,11 @@ namespace Sshfs
             driveListView.BeginUpdate();
             for (int i = 0; i < _drives.Count; i++)
             {
-                driveListView.Items.Add((_drives[i].Tag =
-                                         new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}) as ListViewItem);
+                driveListView.Items.Add(
+                    (
+                        _drives[i].Tag = new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}
+                    ) as ListViewItem
+                );
                 _drives[i].StatusChanged += drive_StatusChanged;
                 if (_drives[i].Name.StartsWith("New Drive")) _namecount++;
 
@@ -111,6 +114,7 @@ namespace Sshfs
                 driveListView.SelectedIndices.Add(0);
             }
 
+            driveListView.Sorting = SortOrder.Ascending;
 
             driveListView.EndUpdate();
 
@@ -264,8 +268,11 @@ namespace Sshfs
                                 Letter = letter,
                                 MountPoint = ""
                             };
+            
+
             drive.StatusChanged += drive_StatusChanged;
             _drives.Add(drive);
+            this.virtualDrive.AddSubFS(drive);
             var item =
                 (drive.Tag = new ListViewItem(drive.Name, 0) {Tag = drive, Selected = true}) as
                 ListViewItem;
@@ -277,6 +284,7 @@ namespace Sshfs
 
             SetupPanels();
             _dirty = true;
+            
         }
 
         private void drive_StatusChanged(object sender, EventArgs e)
@@ -327,6 +335,7 @@ namespace Sshfs
 
                 drive.StatusChanged -= drive_StatusChanged;
                 drive.Unmount();
+                virtualDrive.RemoveSubFS(drive);
                 _drives.Remove(drive);
 
 
@@ -413,8 +422,11 @@ namespace Sshfs
                 nameBox.Text = String.Format("{0}@'{1}'", userBox.Text, hostBox.Text);
             }
 
-
             driveListView.SelectedItems[0].Text = drive.Name = nameBox.Text;
+            driveListView.SelectedItems[0].EnsureVisible();
+            driveListView.Sorting = SortOrder.None;
+            driveListView.Sorting = SortOrder.Ascending;
+
             drive.Host = hostBox.Text;
             drive.Port = (int) portBox.Value;
             drive.Username = userBox.Text;
