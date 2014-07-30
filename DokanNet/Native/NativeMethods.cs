@@ -27,11 +27,11 @@ namespace DokanNet.Native
         public static extern IntPtr DokanOpenRequestorToken(DokanFileInfo rawFileInfo);
 
 
-        /*
+        
         [DllImport("dokan.dll", CharSet = CharSet.Unicode)]
         public static extern bool DokanIsNameInExpression([MarshalAs(UnmanagedType.LPWStr)] string expression,
                                                           // matching pattern
                                                           [MarshalAs(UnmanagedType.LPWStr)] string name, // file name
-                                                          [MarshalAs(UnmanagedType.Bool)] bool ignoreCase);*/
+                                                          [MarshalAs(UnmanagedType.Bool)] bool ignoreCase);
     }
 }

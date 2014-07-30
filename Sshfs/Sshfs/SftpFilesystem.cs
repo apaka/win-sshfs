@@ -942,17 +942,14 @@ namespace Sshfs
 
             //apply pattern
             List<FileInformation> filteredfiles = new List<FileInformation>();
-            Regex repattern = new Regex("^"+Regex.Escape(searchPattern).Replace("\\*", ".*")+"$");
             foreach(FileInformation fi in files){
-                if (repattern.IsMatch(fi.FileName))
+                if (Dokan.IsNameInExpression(searchPattern, fi.FileName, true))
                 {
                     filteredfiles.Add(fi);
                     LogFSActionOther("FindFilesPat", fileName, (SftpContext)info.Context, "Result:{0}", fi.FileName);
                 }
             }
             files = filteredfiles;
-            /*not sure, whats right... if (files.Count == 0)
-                return DokanError.ErrorFileNotFound;*/
 
             LogFSActionSuccess("FindFilesPat", fileName, (SftpContext)info.Context, "Pattern:{0} Count:{1}", searchPattern, files.Count);
             return DokanError.ErrorSuccess;

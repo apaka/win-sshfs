@@ -137,5 +137,10 @@ namespace DokanNet
         {
             get { return (int) NativeMethods.DokanDriverVersion(); }
         }
+
+        public static bool IsNameInExpression(string expression, string name, bool ignoreCase)
+        {
+            return DokanNet.Native.NativeMethods.DokanIsNameInExpression(expression, name, ignoreCase);
+        }
     }
 }
