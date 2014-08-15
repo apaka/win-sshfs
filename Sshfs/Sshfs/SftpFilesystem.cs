@@ -807,7 +807,7 @@ namespace Sshfs
                             if (sftpFileAttributes.IsSymbolicLink)
                             {
                                 sftpFileAttributes = _sftpSession.RequestStat(
-                                    GetUnixPath(String.Format("{0}{1}", fileName, file.Key)), true) ??
+                                    GetUnixPath(String.Format("{0}\\{1}", fileName, file.Key)), true) ??
                                                      file.Value;
                             }
 
@@ -841,7 +841,18 @@ namespace Sshfs
                                                               .
                                                               Size
                                                       };
-                            if (sftpFileAttributes.IsDirectory)
+                            if (sftpFileAttributes.IsSymbolicLink)
+                            {
+                                //fileInformation.Attributes |= FileAttributes.ReparsePoint;
+                                //link?
+                            }
+
+                            if (sftpFileAttributes.IsSocket)
+                            {
+                                fileInformation.Attributes
+                                    |=
+                                    FileAttributes.NoScrubData | FileAttributes.System | FileAttributes.Device;
+                            }else if (sftpFileAttributes.IsDirectory)
                             {
                                 fileInformation.Attributes
                                     |=
@@ -853,6 +864,7 @@ namespace Sshfs
                             {
                                 fileInformation.Attributes |= FileAttributes.Normal;
                             }
+
                             if (file.Key[0] == '.')
                             {
                                 fileInformation.Attributes
