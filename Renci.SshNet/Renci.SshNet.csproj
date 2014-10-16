@@ -41,7 +41,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>sshfs_4every1.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>WinSSH4e1-public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -475,6 +475,7 @@
   <ItemGroup>
     <None Include="Documentation\Renci.SshNet.content" />
     <None Include="sshfs_4every1.pfx" />
+    <None Include="WinSSH4e1-public.snk" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Documentation\SshNet.shfbproj" />
