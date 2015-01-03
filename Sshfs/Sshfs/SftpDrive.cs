@@ -54,11 +54,11 @@ namespace Sshfs
 
         public ConnectionType ConnectionType { get; set; }
 
+        public bool StorePassword { get; set; }
+
         public string PrivateKey { get; set; }
 
         public string Password { get; set; }
-
-        public string Passphrase { get; set; }
 
         public string Username { get; set; }
 
@@ -92,7 +92,7 @@ namespace Sshfs
 
         public event EventHandler<EventArgs> StatusChanged;
 
- 
+        
 
         private void SetupFilesystem()
         {
@@ -100,11 +100,12 @@ namespace Sshfs
 
             var info = ConnectionType == ConnectionType.Password
                                       ? (ConnectionInfo) new PasswordConnectionInfo(Host, Port, Username, Password)
-                                      : new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
+                                      : (ConnectionInfo) new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Password));
 
             _connection = Settings.Default.UseNetworkDrive ? String.Format("\\\\{0}\\{1}\\{2}", info.Host, Root, info.Username) : Name;
 
-            _filesystem = new SftpFilesystem(info, Root,_connection,Settings.Default.UseOfflineAttribute,false, (int) Settings.Default.AttributeCacheTimeout,  (int) Settings.Default.DirContentCacheTimeout);
+            _filesystem = new SftpFilesystem(info, Root, _connection, Settings.Default.UseOfflineAttribute, false,
+                                             (int) Settings.Default.AttributeCacheTimeout, (int) Settings.Default.DirContentCacheTimeout);
             Debug.WriteLine("Connecting...");
             _filesystem.Connect();
         }
@@ -169,7 +170,7 @@ namespace Sshfs
             }
 
 
-               Status = DriveStatus.Mounting;
+            Status = DriveStatus.Mounting;
 
             try
             {
@@ -291,8 +292,7 @@ namespace Sshfs
 
         #region Implementation of ISerializable
 
-        public SftpDrive(SerializationInfo info,
-                         StreamingContext context)
+        public SftpDrive(SerializationInfo info, StreamingContext context)
         {
             Name = info.GetString("name");
             Host = info.GetString("host");
@@ -302,13 +302,20 @@ namespace Sshfs
             Automount = info.GetBoolean("mount");
             Username = info.GetString("user");
             ConnectionType = (ConnectionType) info.GetByte("c");
+            StorePassword = info.GetBoolean("storepw");
             if (ConnectionType == ConnectionType.Password)
             {
-                Password = Utilities.UnprotectString(info.GetString("p"));
+                if (StorePassword)
+                {
+                    Password = Utilities.UnprotectString(info.GetString("p"));
+                }
             }
             else
             {
-                Passphrase = Utilities.UnprotectString(info.GetString("p"));
+                if (StorePassword)
+                {
+                    Password = Utilities.UnprotectString(info.GetString("p"));
+                }
                 PrivateKey = info.GetString("k");
             }
         }
@@ -325,13 +332,20 @@ namespace Sshfs
             info.AddValue("mount", Automount);
             info.AddValue("user", Username);
             info.AddValue("c", (byte)ConnectionType);
+            info.AddValue("storepw", StorePassword);
             if (ConnectionType == ConnectionType.Password)
             {
-                info.AddValue("p", Utilities.ProtectString(Password));
+                if (StorePassword)
+                {
+                    info.AddValue("p", Utilities.ProtectString(Password));
+                }
             }
             else
             {
-                info.AddValue("p", Utilities.ProtectString(Passphrase));
+                if (StorePassword)
+                {
+                    info.AddValue("p", Utilities.ProtectString(Password));
+                }
                 info.AddValue("k", PrivateKey);
             }
         }

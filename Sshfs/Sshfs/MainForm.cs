@@ -269,6 +269,7 @@ namespace Sshfs
                 portBox.Value = drive.Port;
                 userBox.Text = drive.Username;
                 authCombo.SelectedIndex = drive.ConnectionType == ConnectionType.Password ? 0 : 1;
+                storePasswordCheck.Checked = drive.StorePassword;
                 letterBox.BeginUpdate();
 
                 letterBox.Items.Clear();
@@ -286,20 +287,42 @@ namespace Sshfs
                 passwordBox.Text = drive.Password;
                 directoryBox.Text = drive.Root;
                 mountCheck.Checked = drive.Automount;
-                passwordBox.Text = drive.Password;
+                passwordBox.Text = drive.ConnectionType == ConnectionType.Password ? drive.Password : "";
                 privateKeyBox.Text = drive.PrivateKey;
-                passphraseBox.Text = drive.Passphrase;
+                passphraseBox.Text = drive.ConnectionType == ConnectionType.PrivateKey ? drive.Password : "";
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
             }
         }
 
+        private void updateAuthVisibility()
+        {
+            switch (authCombo.SelectedIndex)
+            {
+                case 0:
+                    passwordBox.Visible = storePasswordCheck.Checked;
+                    passphraseBox.Visible = false;
+                    privateKeyBox.Visible = privateKeyButton.Visible = false;
+                    break;
+                case 1:
+                    passwordBox.Visible = false;
+                    passphraseBox.Visible = storePasswordCheck.Checked;
+                    privateKeyBox.Visible = privateKeyButton.Visible = true;
+                    break;
+            }
+        }
+
         private void authBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             authLabel.Text = String.Format("{0}:", authCombo.Text);
-            passwordBox.Visible = authCombo.SelectedIndex == 0;
-            privateKeyButton.Visible = passphraseBox.Visible = privateKeyBox.Visible = authCombo.SelectedIndex == 1;
+            updateAuthVisibility();
+        }
+
+        private void storePasswordCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            passwordBox.Text = passphraseBox.Text = "";
+            updateAuthVisibility();
         }
 
         private void keyButton_Click(object sender, EventArgs e)
@@ -329,15 +352,15 @@ namespace Sshfs
 
             driveListView.SelectedItems[0].Text = drive.Name = nameBox.Text;
             drive.Host = hostBox.Text;
-            drive.Port = (int) portBox.Value;
+            drive.Port = (int)portBox.Value;
             drive.Username = userBox.Text;
             drive.ConnectionType = authCombo.SelectedIndex == 0 ? ConnectionType.Password : ConnectionType.PrivateKey;
+            drive.StorePassword = storePasswordCheck.Checked;
             drive.Letter = letterBox.Text[0];
             drive.Root = directoryBox.Text.Trim();
             drive.Automount = mountCheck.Checked;
-            drive.Password = passwordBox.Text;
+            drive.Password = authCombo.SelectedIndex == 0 ? passwordBox.Text : passphraseBox.Text;
             drive.PrivateKey = privateKeyBox.Text;
-            drive.Passphrase = passphraseBox.Text;
             _dirty = true;
         }
 
@@ -380,12 +403,34 @@ namespace Sshfs
                                       });
         }
 
+        private string showPasswordPrompt(string title)
+        {
+            Form prompt = new Form();
+            prompt.Width = 200;
+            prompt.Height = 80;
+            prompt.FormBorderStyle = FormBorderStyle.FixedDialog;
+            prompt.Text = title;
+            prompt.StartPosition = FormStartPosition.CenterScreen;
+            TextBox textBox = new TextBox() { Left=10, Top=10, Width=125, Height=20, PasswordChar='*' };
+            Button confirmation = new Button() { Left=140, Top=10, Width=35, Height=20, Text="Ok" };
+            confirmation.Click += (sender, e) => { prompt.Close(); };
+            prompt.Controls.Add(textBox);
+            prompt.Controls.Add(confirmation);
+            prompt.AcceptButton = confirmation;
+            prompt.ShowDialog();
+            return textBox.Text;
+        }
+
         private void muButton_Click(object sender, EventArgs e)
         {
             var drive = driveListView.SelectedItems[0].Tag as SftpDrive;
 
             if (drive.Status == DriveStatus.Unmounted)
             {
+                if (!drive.StorePassword)
+                {
+                    drive.Password = showPasswordPrompt(drive.ConnectionType == ConnectionType.Password ? "Password" : "Passphrase");
+                }
                 MountDrive(drive);
                 muButton.Enabled = false;
             }
@@ -584,6 +629,11 @@ namespace Sshfs
             if (driveListView.SelectedItems[0].Tag == drive)
                 muButton.Enabled = false;
             MountDrive(drive);
+        }
+
+        private void buttonPanel_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }
