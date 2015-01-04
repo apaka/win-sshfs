@@ -294,6 +294,16 @@ namespace Sshfs
 
         public SftpDrive(SerializationInfo info, StreamingContext context)
         {
+            bool hasStorepw = false;
+
+            foreach(SerializationEntry entry in info) {
+                switch(entry.Name) {
+                    case "storepw":
+                        hasStorepw = true;
+                        break;
+                }
+            }
+
             Name = info.GetString("name");
             Host = info.GetString("host");
             Port = info.GetInt32("port");
@@ -302,7 +312,10 @@ namespace Sshfs
             Automount = info.GetBoolean("mount");
             Username = info.GetString("user");
             ConnectionType = (ConnectionType) info.GetByte("c");
-            StorePassword = info.GetBoolean("storepw");
+            if (hasStorepw)
+            {
+                StorePassword = info.GetBoolean("storepw");
+            }
             if (ConnectionType == ConnectionType.Password)
             {
                 if (StorePassword)
