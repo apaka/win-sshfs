@@ -312,10 +312,7 @@ namespace Sshfs
             Automount = info.GetBoolean("mount");
             Username = info.GetString("user");
             ConnectionType = (ConnectionType) info.GetByte("c");
-            if (hasStorepw)
-            {
-                StorePassword = info.GetBoolean("storepw");
-            }
+            StorePassword = hasStorepw ? info.GetBoolean("storepw") : true;
             if (ConnectionType == ConnectionType.Password)
             {
                 if (StorePassword)
