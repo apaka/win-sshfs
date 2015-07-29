@@ -159,6 +159,8 @@ namespace Sshfs
             _filesystem = new SftpFilesystem(info, Root,_connection,Settings.Default.UseOfflineAttribute,false, (int) Settings.Default.AttributeCacheTimeout,  (int) Settings.Default.DirContentCacheTimeout);
             Debug.WriteLine("Connecting...");
             _filesystem.Connect();
+            _filesystem.KeepAliveInterval = new TimeSpan(0, 0, 60);
+            _filesystem.SendKeepAlive();
         }
 
         private void SetupMountThread()
