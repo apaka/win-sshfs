@@ -1,23 +1,10 @@
-WinSshFS 4every1 edition
+Win-SSHFS
 ========================
 
-I decided to share my clone of win-sshfs based on <https://github.com/apaka/win-sshfs>
-I did some improvments for my needs. Current devel branch version seems to be very stable.
- 
-There are several changes, main differences:
+This is fork of [dimov-cz/win-sshfs](https://github.com/dimov-cz/win-sshfs)  
+As original project seems abandoned, i've made some changes to my needs here:
 
-*   current Renci SSH (2014.4.6beta)
-*   solved few bugs like payload, 2 hosts and others
-*   Puttyant support
-*   settings files location is in fixed place (%USER%/APPDATA/winsshfs)
-*   "spooldrive" - all remote hosts can by mount as mountpoint dir in one virtual drive
-*   archive flag of file in windows represents and controls permission for group:
-    *   ON => group have same rights as owner
-    *   OFF => same rights as others)
-*   I use different versioning: 1.5.12.5 = version.subversion.release.build
+*   Ability to use Proxy for connections
+*   Send Keepalive packets. (Not configurable, each 60sec hardcoded)
 
-And probably others , see logs for details.
-
-
-
-    
+Check [commits](https://github.com/sepich/win-sshfs/commits/devel) section for details
