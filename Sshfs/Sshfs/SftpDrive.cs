@@ -80,6 +80,10 @@ namespace Sshfs
 
         public string MountPoint { get; set; }
 
+        public int ProxyType { get; set; }
+        public string ProxyHost { get; set; }
+        public string ProxyUser { get; set; }
+        public string ProxyPass { get; set; }
 
         public SftpDrive(){}
        
@@ -99,18 +103,54 @@ namespace Sshfs
         {
             Debug.WriteLine("SetupFilesystem {0},{1},{2},{3}",Host,Port,Username,ConnectionType.ToString());
 
+            ProxyTypes pt = ProxyTypes.None;
+            switch (ProxyType) {
+              case 1: pt = ProxyTypes.Http; break;
+              case 2: pt = ProxyTypes.Socks4; break;
+              case 3: pt = ProxyTypes.Socks5; break;
+            }
+            int ProxyPort = 0;
+            var s = ProxyHost.Split(':');
+            if (s.Length > 1) {
+              Int32.TryParse(s[1], out ProxyPort);
+            }
+
             ConnectionInfo info;
             switch (ConnectionType)
             {
                 case ConnectionType.Pageant:
                     var agent = new PageantProtocol();
-                    info = new AgentConnectionInfo(Host, Port, Username, agent);
+                    if (pt == ProxyTypes.None) {
+                      info = new AgentConnectionInfo(Host, Port, Username, agent);
+                    }
+                    else if (ProxyUser.Length>0) {
+                      info = new AgentConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass, agent);
+                    }
+                    else {
+                      info = new AgentConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, agent);
+                    }
                     break;
                 case ConnectionType.PrivateKey:
-                    info = new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
+                    if (pt == ProxyTypes.None) {
+                      info = new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
+                    }
+                    else if (ProxyUser.Length > 0) {
+                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass, new PrivateKeyFile(PrivateKey, Passphrase));
+                    }
+                    else {
+                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, new PrivateKeyFile(PrivateKey, Passphrase));
+                    }
                     break;
                 default:
-                    info = new PasswordConnectionInfo(Host, Port, Username, Password);
+                    if (pt == ProxyTypes.None) {
+                      info = new PasswordConnectionInfo(Host, Port, Username, Password);
+                    }
+                    else if (ProxyUser.Length > 0) {
+                      info = new PasswordConnectionInfo(Host, Username, Password, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass);
+                    }
+                    else {
+                      info = new PasswordConnectionInfo(Host, Port, Username, Password, pt, ProxyHost, ProxyPort);
+                    }
                     break;
             }
 
@@ -317,6 +357,13 @@ namespace Sshfs
             Root = info.GetString("path");
             Automount = info.GetBoolean("mount");
             Username = info.GetString("user");
+            try {
+              ProxyType = info.GetInt32("proxyType");
+              ProxyHost = info.GetString("proxyHost");
+              ProxyUser = info.GetString("proxyUser");
+              ProxyPass = info.GetString("proxyPass");
+            }
+            catch { }
             ConnectionType = (ConnectionType) info.GetByte("c");
             if (ConnectionType == ConnectionType.Password)
             {
@@ -350,6 +397,10 @@ namespace Sshfs
             info.AddValue("user", Username);
             info.AddValue("c", (byte)ConnectionType);
             info.AddValue("mountpoint", MountPoint);
+            info.AddValue("proxyType", ProxyType);
+            info.AddValue("proxyHost", ProxyHost);
+            info.AddValue("proxyUser", ProxyUser);
+            info.AddValue("proxyPass", ProxyPass);
             if (ConnectionType == ConnectionType.Password)
             {
                 info.AddValue("p", Utilities.ProtectString(Password));
@@ -363,6 +414,5 @@ namespace Sshfs
 
         #endregion
 
-      
     }
 }
