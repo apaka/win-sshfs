@@ -109,10 +109,12 @@ namespace Sshfs
               case 2: pt = ProxyTypes.Socks4; break;
               case 3: pt = ProxyTypes.Socks5; break;
             }
-            int ProxyPort = 0;
+            int ProxyPort = 8080;
+            var Proxy = ProxyHost;
             var s = ProxyHost.Split(':');
             if (s.Length > 1) {
               Int32.TryParse(s[1], out ProxyPort);
+              Proxy = s[0];
             }
 
             ConnectionInfo info;
@@ -124,10 +126,10 @@ namespace Sshfs
                       info = new AgentConnectionInfo(Host, Port, Username, agent);
                     }
                     else if (ProxyUser.Length>0) {
-                      info = new AgentConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass, agent);
+                      info = new AgentConnectionInfo(Host, Port, Username, pt, Proxy, ProxyPort, ProxyUser, ProxyPass, agent);
                     }
                     else {
-                      info = new AgentConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, agent);
+                      info = new AgentConnectionInfo(Host, Port, Username, pt, Proxy, ProxyPort, agent);
                     }
                     break;
                 case ConnectionType.PrivateKey:
@@ -135,10 +137,10 @@ namespace Sshfs
                       info = new PrivateKeyConnectionInfo(Host, Port, Username, new PrivateKeyFile(PrivateKey, Passphrase));
                     }
                     else if (ProxyUser.Length > 0) {
-                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass, new PrivateKeyFile(PrivateKey, Passphrase));
+                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, Proxy, ProxyPort, ProxyUser, ProxyPass, new PrivateKeyFile(PrivateKey, Passphrase));
                     }
                     else {
-                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, ProxyHost, ProxyPort, new PrivateKeyFile(PrivateKey, Passphrase));
+                      info = new PrivateKeyConnectionInfo(Host, Port, Username, pt, Proxy, ProxyPort, new PrivateKeyFile(PrivateKey, Passphrase));
                     }
                     break;
                 default:
@@ -146,10 +148,10 @@ namespace Sshfs
                       info = new PasswordConnectionInfo(Host, Port, Username, Password);
                     }
                     else if (ProxyUser.Length > 0) {
-                      info = new PasswordConnectionInfo(Host, Username, Password, pt, ProxyHost, ProxyPort, ProxyUser, ProxyPass);
+                      info = new PasswordConnectionInfo(Host, Username, Password, pt, Proxy, ProxyPort, ProxyUser, ProxyPass);
                     }
                     else {
-                      info = new PasswordConnectionInfo(Host, Port, Username, Password, pt, ProxyHost, ProxyPort);
+                      info = new PasswordConnectionInfo(Host, Port, Username, Password, pt, Proxy, ProxyPort);
                     }
                     break;
             }
@@ -158,9 +160,8 @@ namespace Sshfs
 
             _filesystem = new SftpFilesystem(info, Root,_connection,Settings.Default.UseOfflineAttribute,false, (int) Settings.Default.AttributeCacheTimeout,  (int) Settings.Default.DirContentCacheTimeout);
             Debug.WriteLine("Connecting...");
-            _filesystem.Connect();
             _filesystem.KeepAliveInterval = new TimeSpan(0, 0, 60);
-            _filesystem.SendKeepAlive();
+            _filesystem.Connect();
         }
 
         private void SetupMountThread()
