@@ -474,7 +474,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Documentation\Renci.SshNet.content" />
-    <None Include="sshfs_4every1.pfx" />
     <None Include="WinSSH4e1-public.snk" />
   </ItemGroup>
   <ItemGroup>
