@@ -111,10 +111,14 @@ namespace Sshfs
             }
             int ProxyPort = 8080;
             var Proxy = ProxyHost;
-            var s = ProxyHost.Split(':');
-            if (s.Length > 1) {
-              Int32.TryParse(s[1], out ProxyPort);
-              Proxy = s[0];
+            if (ProxyHost != null)
+            {
+                var s = ProxyHost.Split(':');
+                if (s.Length > 1)
+                {
+                    Int32.TryParse(s[1], out ProxyPort);
+                    Proxy = s[0];
+                }
             }
 
             ConnectionInfo info;
