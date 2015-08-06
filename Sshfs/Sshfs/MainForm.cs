@@ -101,7 +101,26 @@ namespace Sshfs
             virtualDrive.StatusChanged += drive_VFSStatusChanged;
 
             updateVirtualDriveCombo();
-            virtualDrive.Mount();
+            try
+            {
+                virtualDrive.Mount();
+            }
+            catch (Exception ex)
+            {
+                if (Visible)
+                {
+                    BeginInvoke(
+                        new MethodInvoker(
+                            () =>
+                            MessageBox.Show(this,
+                                            String.Format("{0} could not connect:\n{1}",
+                                                          "Virtual drive", ex.Message), Text)));
+                }
+                else
+                {
+                    ShowBallon(String.Format("{0} : {1}", "Virtual drive", ex.Message), true);
+                }
+            }
             buttonVFSupdate();
 
 
