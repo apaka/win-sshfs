@@ -366,9 +366,9 @@ namespace Sshfs
                             
                             if (options.HasFlag(FileOptions.DeleteOnClose))
                             {
-                                info.DeleteOnClose = true;//dosnt work, is reset somewhere inside
+                                return DokanError.ErrorError;//this will result in calling DeleteFile in Windows Explorer
                             }
-                            info.Context = new SftpContext(sftpFileAttributes, options.HasFlag(FileOptions.DeleteOnClose));
+                            info.Context = new SftpContext(sftpFileAttributes, false);
 
                             LogFSActionOther("OpenFile", fileName, (SftpContext)info.Context, "Dir open or get attrs");
                             return DokanError.ErrorSuccess;
