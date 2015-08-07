@@ -66,6 +66,29 @@ namespace Sshfs
           }
         }
 
+        private void tryMountVFS()
+        {
+            try
+            {
+                virtualDrive.Mount();
+            }
+            catch (Exception ex)
+            {
+                if (Visible)
+                {
+                    BeginInvoke(
+                        new MethodInvoker(
+                            () =>
+                            MessageBox.Show(this,
+                                            String.Format("{0} could not connect:\n{1}",
+                                                          "Virtual drive", ex.Message), Text)));
+                }
+                else
+                {
+                    ShowBallon(String.Format("{0} : {1}", "Virtual drive", ex.Message), true);
+                }
+            }
+        }
 
         protected override void OnLoad(EventArgs e)
         {
@@ -101,26 +124,7 @@ namespace Sshfs
             virtualDrive.StatusChanged += drive_VFSStatusChanged;
 
             updateVirtualDriveCombo();
-            try
-            {
-                virtualDrive.Mount();
-            }
-            catch (Exception ex)
-            {
-                if (Visible)
-                {
-                    BeginInvoke(
-                        new MethodInvoker(
-                            () =>
-                            MessageBox.Show(this,
-                                            String.Format("{0} could not connect:\n{1}",
-                                                          "Virtual drive", ex.Message), Text)));
-                }
-                else
-                {
-                    ShowBallon(String.Format("{0} : {1}", "Virtual drive", ex.Message), true);
-                }
-            }
+            this.tryMountVFS();
             buttonVFSupdate();
 
 
@@ -770,7 +774,8 @@ namespace Sshfs
 
             if (virtualDrive.Status == DriveStatus.Unmounted)
             {
-                virtualDrive.Mount();
+                this.tryMountVFS();
+                
             }else if (virtualDrive.Status == DriveStatus.Mounted)
             {
                 virtualDrive.Unmount();
