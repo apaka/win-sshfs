@@ -103,9 +103,9 @@ namespace Sshfs
 
             _sftpSession = new SftpSession(Session, _operationTimeout, Encoding.UTF8);
 
-
+            this.Log("Connected %s", _volumeLabel);
             _sftpSession.Connect();
-
+            
 
             _userId = GetUserId();
             if (_userId != -1)
@@ -121,11 +121,14 @@ namespace Sshfs
                 _sftpSession._supportedExtensions.Contains(new KeyValuePair<string, string>("posix-rename@openssh.com", "1"));
             _supportsStatVfs =
                 _sftpSession._supportedExtensions.Contains(new KeyValuePair<string, string>("statvfs@openssh.com", "2"));
-            // KeepAliveInterval=TimeSpan.FromSeconds(5);
 
-           //  Session.Disconnected+= (sender, args) => Debugger.Break();
         }
 
+        protected override void OnDisconnected()
+        {
+            base.OnDisconnected();
+            this.Log("disconnected %s", _volumeLabel);
+        }
 
         protected override void Dispose(bool disposing)
         {

@@ -166,7 +166,58 @@ namespace Sshfs
             Debug.WriteLine("Connecting...");
             _filesystem.KeepAliveInterval = new TimeSpan(0, 0, 60);
             _filesystem.Connect();
+            _filesystem.Disconnected += OnDisconnectedFSEvent;
+            _filesystem.ErrorOccurred += OnDisconnectedFSEvent;
         }
+
+        Thread reconnectThread;
+
+        private void OnDisconnectedFSEvent(object sender, EventArgs ea)
+        {
+            this.startReconnect();
+        }
+
+        private void startReconnect()
+        {
+            this.stopReconnect();
+
+            this.reconnectThread = new Thread(new ThreadStart(reconnectJob));
+            this.reconnectThread.Start();
+        }
+        private void stopReconnect()
+        {
+            this._threadCancel.Cancel();
+            if (this.reconnectThread != null && this.reconnectThread.IsAlive)
+            {
+                this.reconnectThread.Abort();
+            }
+            this.reconnectThread = null;
+        }
+
+        private void reconnectJob()
+        {
+            this.Unmount();
+
+            while (this.Status != DriveStatus.Mounted)
+            {
+                try
+                {
+                    if (_threadCancel.IsCancellationRequested)
+                    {
+                        Debug.WriteLine("Reconnect thread:Cancel");
+                        break;
+                    }
+                    this.Mount();
+                }
+                catch 
+                {}
+                if (this.Status != DriveStatus.Mounted){
+                    Thread.Sleep(1000);
+                }
+            }
+        }
+
+        
 
         private void SetupMountThread()
         {
@@ -283,8 +334,12 @@ namespace Sshfs
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void Unmount()
         {
-            Debug.WriteLine("Unmount");
+            if (this.reconnectThread != Thread.CurrentThread)
+            {
+                this.stopReconnect();
+            }
 
+            Debug.WriteLine("Unmount");
             Status = DriveStatus.Unmounting;
             try
             {
@@ -306,7 +361,9 @@ namespace Sshfs
             }
             finally
             {
-                _filesystem = null;  
+                _filesystem = null;
+                Status = DriveStatus.Unmounted;
+                OnStatusChanged(EventArgs.Empty);
             }
 
         }

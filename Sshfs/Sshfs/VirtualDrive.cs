@@ -189,6 +189,9 @@ namespace Sshfs
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void Unmount()
         {
+            this._threadCancel.Cancel();
+            this._pauseEvent.Set();
+
             Debug.WriteLine("Unmount");
 
             Status = DriveStatus.Unmounting;

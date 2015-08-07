@@ -786,14 +786,14 @@ namespace Sshfs
 
         private void buttonVFSupdate()
         {
-            BeginInvoke(new MethodInvoker(() =>
+            this.BeginInvoke(new MethodInvoker(() =>
             {
                 buttonVFSMount.Text = virtualDrive.Status == DriveStatus.Mounted
                                         ? "Unmount"
                                         : "Mount";
                 buttonVFSMount.Image = virtualDrive.Status == DriveStatus.Mounted
-                                         ? Resources.unmount
-                                         : Resources.mount;
+                                            ? Resources.unmount
+                                            : Resources.mount;
                 buttonVFSMount.Enabled = true;
             }));
         }
