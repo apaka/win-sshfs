@@ -406,7 +406,7 @@ namespace Sshfs
                                                    ? System.IO.FileAccess.Read
                                                    : System.IO.FileAccess.ReadWrite, sftpFileAttributes);
             }
-            catch (SshException) // Don't have access rights or try to read broken symlink
+            catch (SshException ex) // Don't have access rights or try to read broken symlink
             {
                 var ownerpath = path.Substring(0, path.LastIndexOf('/'));
                 //var sftpPathAttributes = _cache.Get(ownerpath) as SftpFileAttributes;
@@ -756,6 +756,11 @@ namespace Sshfs
             {
                 fileInfo.Attributes |= FileAttributes.Offline;
             }
+
+            if (!this.UserCanWrite(sftpFileAttributes))
+            {
+                fileInfo.Attributes |= FileAttributes.ReadOnly;
+            }
             //  Console.WriteLine(sftpattributes.UserId + "|" + sftpattributes.GroupId + "L" +
             //  sftpattributes.OthersCanExecute + "K" + sftpattributes.OwnerCanExecute);
 
@@ -873,13 +878,13 @@ namespace Sshfs
                                         Hidden;
                             }
 
-                            if (
-                                GroupRightsSameAsOwner(
-                                    sftpFileAttributes))
+                            if (GroupRightsSameAsOwner(sftpFileAttributes))
                             {
-                                fileInformation.Attributes
-                                    |=
-                                    FileAttributes.Archive;
+                                fileInformation.Attributes |= FileAttributes.Archive;
+                            }
+                            if (!this.UserCanWrite(sftpFileAttributes))
+                            {
+                                fileInformation.Attributes |= FileAttributes.ReadOnly;
                             }
                             if (_useOfflineAttribute)
                             {
