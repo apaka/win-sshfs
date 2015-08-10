@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("SFTP Filesystem for Windows ™")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("4every1 s.r.o.")]
-[assembly: AssemblyProduct("WinSshFS 4every1 edition 1.5.12.8-0-g42d7342")]
+[assembly: AssemblyProduct("WinSshFS 4every1 edition 1.5.12.8-0-ge23318a")]
 [assembly: AssemblyCopyright("Copyright © 4every1 s.r.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
