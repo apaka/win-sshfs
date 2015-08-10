@@ -256,7 +256,6 @@ namespace Sshfs
                 return ops.OpenDirectory(fileName, info);
             }
 
-            lastActiveSubsytem = null;
             info.IsDirectory = true;
 
             if (fileName.Length == 1) //root dir
@@ -264,6 +263,8 @@ namespace Sshfs
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, VFS root");
                 return DokanError.ErrorSuccess;
             }
+            //root test shoud keet lastactive if drag and drop(win8)
+            lastActiveSubsytem = null;
 
             string path = fileName.Substring(1);//cut leading \
             
@@ -663,7 +664,7 @@ namespace Sshfs
         DokanError IDokanOperations.GetDiskFreeSpace(out long free, out long total,
                                                      out long used, DokanFileInfo info)
         {
-
+            Log("VFS GetDiskFreeSpace");
             if (lastActiveSubsytem != null)
             {
                 IDokanOperations ops = GetSubSystemOperations(lastActiveSubsytem);
@@ -692,7 +693,7 @@ namespace Sshfs
             filesystemName = "SSHVFS";
 
             features = FileSystemFeatures.CasePreservedNames | FileSystemFeatures.CaseSensitiveSearch |
-                       FileSystemFeatures.SupportsRemoteStorage | FileSystemFeatures.UnicodeOnDisk;
+                       FileSystemFeatures.SupportsRemoteStorage | FileSystemFeatures.UnicodeOnDisk | FileSystemFeatures.SupportsObjectIDs;
             //FileSystemFeatures.PersistentAcls
 
 
