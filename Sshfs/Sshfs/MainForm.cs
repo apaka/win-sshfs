@@ -68,8 +68,13 @@ namespace Sshfs
 
         private void tryMountVFS()
         {
-            try
+            if (virtualDrive.Letter==' ')
             {
+                return;
+            }
+
+            try
+            {    
                 virtualDrive.Mount();
             }
             catch (Exception ex)
@@ -118,7 +123,7 @@ namespace Sshfs
             {
                 virtualDrive = new VirtualDrive
                 {
-                    Letter = 'Z'
+                    Letter = ' '
                 };
             }
             virtualDrive.StatusChanged += drive_VFSStatusChanged;
@@ -755,6 +760,8 @@ namespace Sshfs
             updateLetterBoxCombo(null);
 
             _updateLockvirtualDriveBox = false;
+
+            this.buttonVFSupdate();
         }
 
         private void letterBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -794,7 +801,7 @@ namespace Sshfs
                 buttonVFSMount.Image = virtualDrive.Status == DriveStatus.Mounted
                                             ? Resources.unmount
                                             : Resources.mount;
-                buttonVFSMount.Enabled = true;
+                buttonVFSMount.Enabled = (virtualDrive.Letter != ' ') || virtualDrive.Status == DriveStatus.Mounted;
             }));
         }
 

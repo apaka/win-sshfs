@@ -19,9 +19,9 @@ namespace Sshfs
     [Serializable]
     public class VirtualDrive : IDisposable, ISerializable
     {
-        private readonly CancellationTokenSource _mountCancel = new CancellationTokenSource();
-        private readonly AutoResetEvent _pauseEvent = new AutoResetEvent(false);
-        private readonly CancellationTokenSource _threadCancel = new CancellationTokenSource();
+        private CancellationTokenSource _mountCancel;
+        private AutoResetEvent _pauseEvent;
+        private CancellationTokenSource _threadCancel;
         private Thread _mountThread;
         private Exception _lastExeption;
         private bool _exeptionThrown;
@@ -32,6 +32,7 @@ namespace Sshfs
         public string Name { get; set; }
 
         public char Letter { get; set; }
+        private char mountedLetter { get; set; }
 
         public DriveStatus Status { get; private set; }
 
@@ -81,8 +82,12 @@ namespace Sshfs
             if (_mountThread == null)
             {
                 Debug.WriteLine("Thread:Created");
+                _threadCancel = new CancellationTokenSource();
+                _pauseEvent = new AutoResetEvent(false);
+                _mountCancel = new CancellationTokenSource();
                 _mountThread = new Thread(MountLoop) { IsBackground = true };
                 _mountThread.Start();
+                
             }
         }
 
@@ -109,8 +114,8 @@ namespace Sshfs
                     {
                         _filesystem.AddSubFS(drive);
                     }
-
-                    _filesystem.Mount(String.Format("{0}:\\", Letter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
+                    mountedLetter = Letter;
+                    _filesystem.Mount(String.Format("{0}:\\", mountedLetter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
                 }
                 catch (Exception e)
                 {
@@ -120,6 +125,7 @@ namespace Sshfs
                     _mountCancel.Cancel();
                 }
                 Status = DriveStatus.Unmounted;
+                this._mountThread = null;
                 if (!_exeptionThrown)
                 {
 
@@ -198,7 +204,7 @@ namespace Sshfs
             try
             {
                 // Dokan.Unmount(Letter);
-                Dokan.RemoveMountPoint(String.Format("{0}:\\", Letter));
+                Dokan.RemoveMountPoint(String.Format("{0}:\\", mountedLetter));
             }
             catch
             {

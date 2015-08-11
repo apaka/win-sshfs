@@ -38,9 +38,9 @@ namespace Sshfs
     public class SftpDrive : IDisposable, ISerializable
     {
         
-        private readonly CancellationTokenSource _mountCancel = new CancellationTokenSource();
+        private CancellationTokenSource _mountCancel = new CancellationTokenSource();
         private readonly AutoResetEvent _pauseEvent = new AutoResetEvent(false);
-        private readonly CancellationTokenSource _threadCancel = new CancellationTokenSource();
+        private CancellationTokenSource _threadCancel = new CancellationTokenSource();
         private bool _exeptionThrown;
         internal SftpFilesystem _filesystem;
       
