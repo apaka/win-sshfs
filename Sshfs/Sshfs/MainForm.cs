@@ -308,7 +308,8 @@ namespace Sshfs
                                 Port = 22,
                                 Root = ".",
                                 Letter = letter,
-                                MountPoint = ""
+                                MountPoint = "",
+                                KeepAliveInterval = 30
                             };
             
 
@@ -418,6 +419,11 @@ namespace Sshfs
                     default: authCombo.SelectedIndex=0; break;
                 }
 
+                if(drive.KeepAliveInterval <= 0)
+                {
+                    drive.KeepAliveInterval = 1;
+                }
+
                 updateLetterBoxCombo(drive);
 
                 passwordBox.Text = drive.Password;
@@ -430,6 +436,7 @@ namespace Sshfs
                 proxyHostBox.Text = drive.ProxyHost;
                 proxyLoginBox.Text = drive.ProxyUser;
                 proxyPassBox.Text = drive.ProxyPass;
+                keepAliveIntervalBox.Value = drive.KeepAliveInterval;
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
@@ -492,6 +499,7 @@ namespace Sshfs
             drive.ProxyHost = proxyHostBox.Text;
             drive.ProxyUser = proxyLoginBox.Text;
             drive.ProxyPass = proxyPassBox.Text;
+            drive.KeepAliveInterval = (int) keepAliveIntervalBox.Value;
             _dirty = true;
         }
 
@@ -810,7 +818,6 @@ namespace Sshfs
             var drive = sender as SftpDrive;
             buttonVFSupdate();
         }
-
 
     }
 }

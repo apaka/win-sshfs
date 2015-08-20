@@ -85,6 +85,8 @@ namespace Sshfs
         public string ProxyUser { get; set; }
         public string ProxyPass { get; set; }
 
+        public int KeepAliveInterval { get; set; }
+
         public SftpDrive(){}
        
         private void OnStatusChanged(EventArgs args)
@@ -119,6 +121,11 @@ namespace Sshfs
                     Int32.TryParse(s[1], out ProxyPort);
                     Proxy = s[0];
                 }
+            }
+            
+            if(KeepAliveInterval <= 0)
+            {
+                KeepAliveInterval = 1;
             }
 
             ConnectionInfo info;
@@ -164,7 +171,7 @@ namespace Sshfs
 
             _filesystem = new SftpFilesystem(info, Root,_connection,Settings.Default.UseOfflineAttribute,false, (int) Settings.Default.AttributeCacheTimeout,  (int) Settings.Default.DirContentCacheTimeout);
             Debug.WriteLine("Connecting...");
-            _filesystem.KeepAliveInterval = new TimeSpan(0, 0, 60);
+            _filesystem.KeepAliveInterval = new TimeSpan(0, 0, KeepAliveInterval);
             _filesystem.Connect();
             _filesystem.Disconnected += OnDisconnectedFSEvent;
             _filesystem.ErrorOccurred += OnDisconnectedFSEvent;
