@@ -256,15 +256,14 @@ namespace Sshfs
                 return ops.OpenDirectory(fileName, info);
             }
 
-            
-
             if (fileName.Length == 1) //root dir
             {
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, VFS root");
-                return DokanError.ErrorPathNotFound;
+                info.IsDirectory = true;
+                return DokanError.ErrorSuccess;
             }
 
-            info.IsDirectory = true;
+            
 
             //root test shoud keep lastactive if drag and drop(win8)
             lastActiveSubsytem = null;
@@ -277,6 +276,7 @@ namespace Sshfs
                 if (path == mp)
                 {
                     info.Context = subdrive;
+                    info.IsDirectory = true;
                     LogFSActionSuccess("OpenDir", fileName, drive, "Found, final mountpoint");
                     return DokanError.ErrorSuccess;
                 }
@@ -284,6 +284,7 @@ namespace Sshfs
                 if (mp.IndexOf(path + '\\') == 0)
                 { //path is part of mount point
                     info.Context = subdrive;
+                    info.IsDirectory = true;
                     LogFSActionSuccess("OpenDir", fileName, drive, "Found, part of mountpoint");
                     return DokanError.ErrorSuccess;
                 }
