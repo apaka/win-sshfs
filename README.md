@@ -4,10 +4,11 @@ WinSshFS 4every1 edition
 I decided to share my clone of win-sshfs based on <https://github.com/apaka/win-sshfs>  
 I did some improvments for my needs. Current devel branch version seems to be very stable.
 
-![img](https://habrastorage.org/files/d8d/73c/c3c/d8d73cc3c066461988cca55ea1336714.jpg "UI")
+![img](https://cloud.githubusercontent.com/assets/1085397/10747956/3f684d3a-7c18-11e5-8ca6-0f37a60426e4.jpg "UI")
 
 There are several changes, main differences:
 
+*   Windows 10 Support
 *   current Renci SSH (2014.4.6beta)
 *   solved few bugs like payload, 2 hosts and others
 *   Puttyant (Pageant) support

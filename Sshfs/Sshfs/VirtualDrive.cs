@@ -112,10 +112,17 @@ namespace Sshfs
                     _filesystem = new VirtualFilesystem("WinSshFS spool");
                     foreach (SftpDrive drive in _drives)
                     {
-                        _filesystem.AddSubFS(drive);
+                        if (drive.MountPoint != "")
+                        {
+                            _filesystem.AddSubFS(drive);
+                        }
                     }
                     mountedLetter = Letter;
-                    _filesystem.Mount(String.Format("{0}:\\", mountedLetter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
+                    int threadCount = 8;
+#if DEBUG
+                    threadCount = 1;
+#endif
+                    _filesystem.Mount(String.Format("{0}:\\", mountedLetter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive, threadCount);
                 }
                 catch (Exception e)
                 {
@@ -195,15 +202,16 @@ namespace Sshfs
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void Unmount()
         {
-            this._threadCancel.Cancel();
-            this._pauseEvent.Set();
+            if(this._threadCancel != null)
+                this._threadCancel.Cancel();
+            if(this._pauseEvent != null)
+                this._pauseEvent.Set();
 
             Debug.WriteLine("Unmount");
 
             Status = DriveStatus.Unmounting;
             try
             {
-                // Dokan.Unmount(Letter);
                 Dokan.RemoveMountPoint(String.Format("{0}:\\", mountedLetter));
             }
             catch
