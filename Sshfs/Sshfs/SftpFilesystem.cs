@@ -56,6 +56,8 @@ namespace Sshfs
 
 
         private int _userId;
+        private string _idCommand = "id";
+        private string _dfCommand = "df";
         private HashSet<int> _userGroups;
 
         private readonly int _attributeCacheTimeout;
@@ -92,7 +94,8 @@ namespace Sshfs
 
             this.Log("Connected %s", _volumeLabel);
             _sshClient.Connect();
-            
+
+            CheckAndroid();
 
             _userId = GetUserId();
             if (_userId != -1)
@@ -239,18 +242,30 @@ namespace Sshfs
             return String.Format("{0}{1}", _rootpath, path.Replace('\\', '/').Replace("//","/"));
         }
 
-        private IEnumerable<int> GetUserGroupsIds()
+        private void CheckAndroid()
         {
-            using (var cmd = _sshClient.CreateCommand("id -G ", Encoding.UTF8))
+            using (var cmd = _sshClient.CreateCommand("test -f /system/build.prop", Encoding.UTF8))
             {
                 cmd.Execute();
-                return cmd.Result.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
+                if (cmd.ExitStatus == 0)
+                {
+                    _idCommand = "busybox id";
+                    _dfCommand = "busybox df";
+                }
+            }
+        }
+        private IEnumerable<int> GetUserGroupsIds()
+        {
+            using (var cmd = _sshClient.CreateCommand(_idCommand + " -G ", Encoding.UTF8))
+            {
+                cmd.Execute();
+                return cmd.Result.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse);
             }
         }
 
         private int GetUserId()
         {
-            using (var cmd = _sshClient.CreateCommand("id -u ", Encoding.UTF8))
+            using (var cmd = _sshClient.CreateCommand(_idCommand + " -u ", Encoding.UTF8))
             // Thease commands seems to be POSIX so the only problem would be Windows enviroment
             {
                 cmd.Execute();
@@ -1192,6 +1207,8 @@ namespace Sshfs
 
             var diskSpaceInfo = CacheGetDiskInfo();
 
+            bool dfCheck = false;
+
             if (diskSpaceInfo != null)
             {
                 free = diskSpaceInfo.Item1;
@@ -1200,6 +1217,9 @@ namespace Sshfs
             }
             else
             {
+                total = 0x1900000000; //100 GiB
+                used = 0xc80000000; // 50 Gib
+                free = 0xc80000000;
                 try
                 {
                     var information = GetStatus(_rootpath);
@@ -1209,7 +1229,15 @@ namespace Sshfs
                 }
                 catch (NotSupportedException)
                 {
-                    using (var cmd = _sshClient.CreateCommand(String.Format(" df -Pk  {0}", _rootpath), Encoding.UTF8))
+                    dfCheck = true;
+                }
+                catch (SshException)
+                {
+                    dfCheck = true;
+                }
+                if(dfCheck)
+                {
+                    using (var cmd = _sshClient.CreateCommand(String.Format(_dfCommand + " -Pk  {0}", _rootpath), Encoding.UTF8))
                     // POSIX standard df
                     {
                         cmd.Execute();
@@ -1220,12 +1248,6 @@ namespace Sshfs
                             total = Int64.Parse(values[values.Length - 5]) << 10;
                             used = Int64.Parse(values[values.Length - 4]) << 10;
                             free = Int64.Parse(values[values.Length - 3]) << 10; //<======maybe to cache all this
-                        }
-                        else
-                        {
-                            total = 0x1900000000; //100 GiB
-                            used = 0xc80000000; // 50 Gib
-                            free = 0xc80000000;
                         }
                     }
                 }

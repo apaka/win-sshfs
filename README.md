@@ -9,6 +9,7 @@ I did some improvments for my needs. Current devel branch version seems to be ve
 There are several changes, main differences:
 
 *   Windows 10 Support
+*   Support for Android hosts (tested with CyanogenMod 11 [Android 4.4], requires busybox to be installed)
 *   current Renci SSH (2014.4.6beta)
 *   solved few bugs like payload, 2 hosts and others
 *   Puttyant (Pageant) support
