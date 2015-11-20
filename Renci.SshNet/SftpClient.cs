@@ -413,6 +413,38 @@ namespace Renci.SshNet
         }
 
         /// <summary>
+        /// Creates a symbolic link from old path to new path.
+        /// </summary>
+        /// <param name="path">The old path.</param>
+        /// <exception cref="SshConnectionException">Client is not connected.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="path" /> is <b>null</b>.</exception>
+        /// <exception cref="SftpPathNotFoundException">There was a problem retrieving the symlink.</exception>
+        /// <exception cref="SshConnectionException">Client is not connected.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="path" /> is <b>null</b>.</exception>
+        /// <exception cref="ObjectDisposedException">The method was called after the client was disposed.</exception>
+        public SftpFile GetSymbolicLinkTarget(string path)
+        {
+            CheckDisposed();
+
+            if (path == null)
+                throw new ArgumentNullException("path");
+
+            if (this._sftpSession == null)
+                throw new SshConnectionException("Client not connected.");
+
+            var symTargetPaths = this._sftpSession.RequestReadLink(path, true);
+
+            if (symTargetPaths == null)
+            {
+                throw new SftpPathNotFoundException("No valid symlink target");
+            }
+
+            SftpFileAttributes symTargetAttributes = GetAttributes(symTargetPaths[0].Key);
+
+            return new SftpFile(this._sftpSession, symTargetPaths[0].Key, symTargetAttributes);
+        }
+
+        /// <summary>
         /// Retrieves list of files in remote directory.
         /// </summary>
         /// <param name="path">The path.</param>
