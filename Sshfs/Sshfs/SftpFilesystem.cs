@@ -368,6 +368,10 @@ namespace Sshfs
         {
             Log("Cleanup:{0},Delete:{1}", info.Context,info.DeleteOnClose);
 
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
             if (info.Context != null)
             {
                 (info.Context as SftpContext).Release();
