@@ -1295,10 +1295,23 @@ namespace Sshfs
             return NtStatus.AccessDenied;
         }
 
-        NtStatus IDokanOperations.Unmount(DokanFileInfo info)
+        NtStatus IDokanOperations.Unmounted(DokanFileInfo info)
         {
-            LogFSActionError("Unmount", this._volumeLabel, (SftpContext)info.Context, "NI");
+            LogFSActionError("Unmounted", this._volumeLabel, (SftpContext)info.Context, "NI");
             return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.Mounted(DokanFileInfo info)
+        {
+            LogFSActionError("Mounted", this._volumeLabel, (SftpContext)info.Context, "NI");
+            return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
+        {
+            //Alternate Data Streams are NFTS-only feature, no need to handle
+            streams = new FileInformation[0];
+            return NtStatus.NotImplemented;
         }
 
         #endregion

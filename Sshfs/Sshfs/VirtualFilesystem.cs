@@ -656,12 +656,23 @@ namespace Sshfs
             return NtStatus.AccessDenied;
         }
 
-        NtStatus IDokanOperations.Unmount(DokanFileInfo info)
+        NtStatus IDokanOperations.Unmounted(DokanFileInfo info)
         {
-            Log("UNMOUNT");
-
+            Log("UNMOUNTED");
             // Disconnect();
             return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.Mounted(DokanFileInfo info)
+        {
+            Log("MOUNTED");
+            return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
+        {
+            streams = new FileInformation[0];
+            return NtStatus.NotImplemented;
         }
 
         #endregion
