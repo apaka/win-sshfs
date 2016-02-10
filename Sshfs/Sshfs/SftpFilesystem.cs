@@ -290,14 +290,14 @@ namespace Sshfs
 
         #region DokanOperations
 
-        DokanError IDokanOperations.CreateFile(string fileName, FileAccess access, FileShare share,
+        NtStatus IDokanOperations.CreateFile(string fileName, FileAccess access, FileShare share,
                                                FileMode mode, FileOptions options,
                                                FileAttributes attributes, DokanFileInfo info)
         {
             if (fileName.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith("autorun.inf", StringComparison.OrdinalIgnoreCase)) //....
             {
-                return DokanError.ErrorFileNotFound;
+                return NtStatus.NoSuchFile;
             }
 
             LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1}", mode,options);
@@ -339,29 +339,29 @@ namespace Sshfs
                             
                             if (options.HasFlag(FileOptions.DeleteOnClose))
                             {
-                                return DokanError.ErrorError;//this will result in calling DeleteFile in Windows Explorer
+                                return NtStatus.Error;//this will result in calling DeleteFile in Windows Explorer
                             }
                             info.Context = new SftpContext(sftpFileAttributes, false);
 
                             LogFSActionOther("OpenFile", fileName, (SftpContext)info.Context, "Dir open or get attrs");
-                            return DokanError.ErrorSuccess;
+                            return NtStatus.Success;
                         }
                     }
                     else
                     {
                         LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "File not found");
-                        return DokanError.ErrorFileNotFound;
+                        return NtStatus.NoSuchFile;
                     }
                     break;
                 case FileMode.CreateNew:
                     if (sftpFileAttributes != null)
-                        return DokanError.ErrorAlreadyExists;
+                        return NtStatus.ObjectNameCollision;
 
                     CacheResetParent(path);
                     break;
                 case FileMode.Truncate:
                     if (sftpFileAttributes == null)
-                        return DokanError.ErrorFileNotFound;
+                        return NtStatus.NoSuchFile;
                     CacheResetParent(path);
                     //_cache.Remove(path);
                     this.CacheReset(path);
@@ -401,18 +401,18 @@ namespace Sshfs
                     {
                         //Log("Up directory must be created");
                         LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "Up directory mising:{0}", ownerpath);
-                        return DokanError.ErrorPathNotFound;
+                        return NtStatus.ObjectPathNotFound;
                     }
                 }
                 LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "Access denied");
-                return DokanError.ErrorAccessDenied;
+                return NtStatus.AccessDenied;
             }
 
             LogFSActionSuccess("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0}", mode);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context,"");
 
@@ -446,7 +446,7 @@ namespace Sshfs
             {
                 if (!UserCanExecute(sftpFileAttributes) || !UserCanRead(sftpFileAttributes))
                 {
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
 
 
@@ -459,13 +459,13 @@ namespace Sshfs
                     CacheReset(path);
                 }
                 LogFSActionSuccess("OpenDir", fileName, (SftpContext)info.Context,"");
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
             LogFSActionError("OpenDir", fileName, (SftpContext)info.Context,"Path not found");
-            return DokanError.ErrorPathNotFound;
+            return NtStatus.ObjectPathNotFound;
         }
 
-        DokanError IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context, "");
 
@@ -478,18 +478,18 @@ namespace Sshfs
             catch (SftpPermissionDeniedException)
             {
                 LogFSActionError("OpenDir", fileName, (SftpContext)info.Context, "Access denied");
-                return DokanError.ErrorAccessDenied;
+                return NtStatus.AccessDenied;
             }
             catch (SshException) // operation should fail with generic error if file already exists
             {
                 LogFSActionError("OpenDir", fileName, (SftpContext)info.Context, "Already exists");
-                return DokanError.ErrorAlreadyExists;
+                return NtStatus.ObjectNameCollision;
             }
             LogFSActionSuccess("OpenDir", fileName, (SftpContext)info.Context,"");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
+        void IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("Cleanup", fileName, (SftpContext)info.Context, "");
 
@@ -528,10 +528,9 @@ namespace Sshfs
             }
 
             LogFSActionSuccess("Cleanup", fileName, (SftpContext)info.Context, "");
-            return DokanError.ErrorSuccess;
         }
 
-        DokanError IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
+        void IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("CloseFile", fileName, (SftpContext)info.Context, "");
             
@@ -551,13 +550,10 @@ namespace Sshfs
             {
                 CacheReset(GetUnixPath(fileName));
             }
-            
-
-            return DokanError.ErrorSuccess;
         }
 
 
-        DokanError IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
+        NtStatus IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
                                              DokanFileInfo info)
         {
             LogFSActionInit("ReadFile", fileName, (SftpContext)info.Context, "BuffLen:{0} Offset:{1}", buffer.Length, offset);
@@ -590,10 +586,10 @@ namespace Sshfs
                 }
             }
             LogFSActionSuccess("ReadFile", fileName, (SftpContext)info.Context, "");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
+        NtStatus IDokanOperations.WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
                                               DokanFileInfo info)
         {
             LogFSActionInit("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{0} Len:{1}", offset, buffer.Length);
@@ -626,11 +622,11 @@ namespace Sshfs
                 }
               
                 LogFSActionSuccess("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
         
 
-        DokanError IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("FlushFile", fileName, (SftpContext)info.Context,"");
 
@@ -639,10 +635,10 @@ namespace Sshfs
             CacheReset(GetUnixPath(fileName));
 
             LogFSActionSuccess("FlushFile", fileName, (SftpContext)info.Context, "");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
+        NtStatus IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
                                                        DokanFileInfo info)
         {
             LogFSActionInit("FileInfo", fileName, (SftpContext)info.Context, "");
@@ -693,7 +689,7 @@ namespace Sshfs
             {
                 LogFSActionError("FileInfo", fileName, (SftpContext)info.Context, "No such file - unable to get info");
                 fileInfo = new FileInformation();
-                return DokanError.ErrorFileNotFound;
+                return NtStatus.NoSuchFile;
 
             }
 
@@ -740,10 +736,10 @@ namespace Sshfs
 
             LogFSActionSuccess("FileInfo", fileName, (SftpContext)info.Context, "Length:{0} Attrs:{1}", fileInfo.Length, fileInfo.Attributes);
 
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
+        NtStatus IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
             //Log("FindFiles:{0}", fileName);
             LogFSActionInit("FindFiles", fileName, (SftpContext)info.Context, "");
@@ -759,7 +755,7 @@ namespace Sshfs
             catch (SftpPermissionDeniedException)
             {
                 files = null;
-                return DokanError.ErrorAccessDenied;
+                return NtStatus.AccessDenied;
             }
 
 
@@ -874,10 +870,10 @@ namespace Sshfs
             {
             }
             LogFSActionSuccess("FindFiles", fileName, (SftpContext)info.Context, "Count:{0}", files.Count);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
+        NtStatus IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
             LogFSActionError("SetFileAttr", fileName, (SftpContext)info.Context, "Attrs:{0}", attributes);
 
@@ -926,7 +922,7 @@ namespace Sshfs
                 }
                 catch(SftpPermissionDeniedException e)
                 {
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
                 CacheReset(path);
                 CacheResetParent(path); //parent cache need reset also
@@ -941,10 +937,10 @@ namespace Sshfs
                 }
             }
 
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
+        NtStatus IDokanOperations.SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
                                                 DateTime? lastWriteTime, DokanFileInfo info)
         {
             //Log("TrySetFileTime:{0}\n|c:{1}\n|a:{2}\n|w:{3}", filename, creationTime, lastAccessTime,lastWriteTime);
@@ -968,10 +964,10 @@ namespace Sshfs
             SetAttributes(GetUnixPath(fileName), tempAttributes);
 
             LogFSActionSuccess("SetFileTime", fileName, (SftpContext)info.Context, "");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.DeleteFile(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.DeleteFile(string fileName, DokanFileInfo info)
         {
             //Log("DeleteFile:{0}", fileName);
             LogFSActionInit("DeleteFile", fileName, (SftpContext)info.Context, "");
@@ -1002,11 +998,11 @@ namespace Sshfs
             return
                 UserCanWrite(
                     sftpFileAttributes)
-                    ? DokanError.ErrorSuccess
-                    : DokanError.ErrorAccessDenied;
+                    ? NtStatus.Success
+                    : NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.DeleteDirectory(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.DeleteDirectory(string fileName, DokanFileInfo info)
         {
             //Log("DeleteDirectory:{0}", fileName);
             LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
@@ -1038,7 +1034,7 @@ namespace Sshfs
                     sftpFileAttributes))
             {
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Access denied");
-                return DokanError.ErrorAccessDenied;
+                return NtStatus.AccessDenied;
             }
             var dircache = CacheGetDir(GetUnixPath(fileName));
             if (dircache != null)
@@ -1051,7 +1047,7 @@ namespace Sshfs
                 else
                     LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
 
-                return test ? DokanError.ErrorSuccess : DokanError.ErrorDirNotEmpty;
+                return test ? NtStatus.Success : NtStatus.DirectoryNotEmpty;
             }
 
             var dir = ListDirectory(GetUnixPath(fileName)).ToList();
@@ -1059,7 +1055,7 @@ namespace Sshfs
             if (dir == null)
             {
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Open failed, access denied?");
-                return DokanError.ErrorAccessDenied;
+                return NtStatus.AccessDenied;
             }
             
             // usualy there are two entries . and ..
@@ -1071,10 +1067,10 @@ namespace Sshfs
             else
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
 
-            return test2 ? DokanError.ErrorSuccess : DokanError.ErrorDirNotEmpty;
+            return test2 ? NtStatus.Success : NtStatus.DirectoryNotEmpty;
         }
 
-        DokanError IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
+        NtStatus IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
             LogFSActionInit("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Replace:{1}",newName, replace);
 
@@ -1106,10 +1102,10 @@ namespace Sshfs
                 catch (SftpPermissionDeniedException)
                 {
                     LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Access denied", newName);
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
                 LogFSActionSuccess("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target didnt exists", newName);
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
             else if (replace)
             {
@@ -1139,49 +1135,49 @@ namespace Sshfs
                 catch (SftpPermissionDeniedException)
                 {
                     LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Access denied", newName);
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 } // not tested on sftp3
 
                 LogFSActionSuccess("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target was replaced", newName);
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
             LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Target already exists", newName);
-            return DokanError.ErrorAlreadyExists;
+            return NtStatus.ObjectNameCollision;
         }
 
-        DokanError IDokanOperations.SetEndOfFile(string fileName, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
             //Log("SetEnd");
             LogFSActionInit("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
             CacheResetParent(GetUnixPath(fileName));
             LogFSActionSuccess("SetEndOfFile", fileName, (SftpContext)info.Context, "Length:{0}", length);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.SetAllocationSize(string fileName, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
             //Log("SetSize");
             LogFSActionInit("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
             (info.Context as SftpContext).Stream.SetLength(length);
             CacheResetParent(GetUnixPath(fileName));
             LogFSActionSuccess("SetAllocSize", fileName, (SftpContext)info.Context, "Length:{0}", length);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.LockFile(string fileName, long offset, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.LockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
             LogFSActionError("LockFile", fileName, (SftpContext)info.Context, "NI");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
             LogFSActionError("UnlockFile", fileName, (SftpContext)info.Context, "NI");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetDiskFreeSpace(out long free, out long total,
+        NtStatus IDokanOperations.GetDiskFreeSpace(out long free, out long total,
                                                      out long used, DokanFileInfo info)
         {
             //Log("GetDiskFreeSpace");
@@ -1234,10 +1230,10 @@ namespace Sshfs
                         DateTimeOffset.UtcNow.AddMinutes(3));
             }
             LogFSActionSuccess("GetDiskFreeSpace", this._volumeLabel, (SftpContext)info.Context, "Free:{0} Total:{1} Used:{2}", free, total, used);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
+        NtStatus IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                          out string filesystemName, DokanFileInfo info)
         {
             LogFSActionInit("GetVolumeInformation", this._volumeLabel, (SftpContext)info.Context, "");
@@ -1251,10 +1247,10 @@ namespace Sshfs
             //FileSystemFeatures.PersistentAcls
 
             LogFSActionSuccess("GetVolumeInformation", this._volumeLabel, (SftpContext)info.Context, "FS:{0} Features:{1}", filesystemName, features);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetFileSecurity(string filename, out FileSystemSecurity security,
+        NtStatus IDokanOperations.GetFileSecurity(string filename, out FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
             LogFSActionInit("GetFileSecurity", filename, (SftpContext)info.Context, "Sections:{0}",sections);
@@ -1288,21 +1284,21 @@ namespace Sshfs
             security.SetGroup(new NTAccount("None"));
 
             LogFSActionSuccess("GetFileSecurity", filename, (SftpContext)info.Context, "Sections:{0} Rights:{1}", sections, rights);
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.SetFileSecurity(string filename, FileSystemSecurity security,
+        NtStatus IDokanOperations.SetFileSecurity(string filename, FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
             LogFSActionError("SetFileSecurity", filename, (SftpContext)info.Context, "NI");
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.Unmount(DokanFileInfo info)
+        NtStatus IDokanOperations.Unmount(DokanFileInfo info)
         {
             LogFSActionError("Unmount", this._volumeLabel, (SftpContext)info.Context, "NI");
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
         #endregion

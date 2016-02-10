@@ -122,7 +122,7 @@ namespace Sshfs
 #if DEBUG
                     threadCount = 1;
 #endif
-                    _filesystem.Mount(String.Format("{0}:\\", mountedLetter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive, threadCount);
+                    _filesystem.Mount(String.Format("{0}:\\", mountedLetter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive : DokanOptions.RemovableDrive, threadCount);
                 }
                 catch (Exception e)
                 {
