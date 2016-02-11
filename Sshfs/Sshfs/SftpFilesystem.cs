@@ -294,6 +294,19 @@ namespace Sshfs
                                                FileMode mode, FileOptions options,
                                                FileAttributes attributes, DokanFileInfo info)
         {
+            //Split into four methods?
+            LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1} IsDirectory:{3}", mode, options, info.IsDirectory);
+
+            if (info.IsDirectory)
+            {
+                if (mode == FileMode.Open)
+                    return OpenDirectory(fileName, info);
+                if (mode == FileMode.CreateNew)
+                    return CreateDirectory(fileName, info);
+
+                return NtStatus.NotImplemented;
+            }
+
             if (fileName.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith("autorun.inf", StringComparison.OrdinalIgnoreCase)) //....
             {
@@ -412,7 +425,7 @@ namespace Sshfs
             return NtStatus.Success;
         }
 
-        NtStatus IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
+        private NtStatus OpenDirectory(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context,"");
 
@@ -465,7 +478,7 @@ namespace Sshfs
             return NtStatus.ObjectPathNotFound;
         }
 
-        NtStatus IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
+        private NtStatus CreateDirectory(string fileName, DokanFileInfo info)
         {
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context, "");
 

@@ -104,6 +104,16 @@ namespace Sshfs
                                                FileMode mode, FileOptions options,
                                                FileAttributes attributes, DokanFileInfo info)
         {
+            if (info.IsDirectory)
+            {
+                if (mode == FileMode.Open)
+                    return OpenDirectory(fileName, info);
+                if (mode == FileMode.CreateNew)
+                    return CreateDirectory(fileName, info);
+
+                return NtStatus.NotImplemented;
+            }
+
             if (fileName.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith("autorun.inf", StringComparison.OrdinalIgnoreCase)) //....
             {
@@ -237,7 +247,7 @@ namespace Sshfs
             return ((IDokanOperations)drive._filesystem);
         }
 
-        NtStatus IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
+        private NtStatus OpenDirectory(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             LogFSActionInit("OpenDir", fileName, drive, "");
@@ -253,7 +263,7 @@ namespace Sshfs
                     return NtStatus.AccessDenied;
                 }
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, subsytem");
-                return ops.OpenDirectory(fileName, info);
+                return ops.CreateFile(fileName, FileAccess.GenericRead, FileShare.None, FileMode.Open, FileOptions.None, FileAttributes.Directory, info);
             }
 
             if (fileName.Length == 1) //root dir
@@ -293,11 +303,11 @@ namespace Sshfs
             return NtStatus.ObjectPathNotFound;
         }
 
-        NtStatus IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
+        private NtStatus CreateDirectory(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
-                return GetSubSystemOperations(drive).CreateDirectory(fileName, info);
+                return GetSubSystemOperations(drive).CreateFile(fileName, FileAccess.GenericRead, FileShare.None, FileMode.CreateNew, FileOptions.None, FileAttributes.Directory, info);
 
             return NtStatus.AccessDenied;
         }
