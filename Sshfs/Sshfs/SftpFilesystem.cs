@@ -295,7 +295,7 @@ namespace Sshfs
                                                FileAttributes attributes, DokanFileInfo info)
         {
             //Split into four methods?
-            LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1} IsDirectory:{3}", mode, options, info.IsDirectory);
+            LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1} IsDirectory:{2}", mode, options, info.IsDirectory);
 
             if (info.IsDirectory)
             {
