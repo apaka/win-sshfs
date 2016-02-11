@@ -242,6 +242,6 @@
   <Target Name="AfterBuild">
   </Target>  -->
   <Target Name="BeforeBuild">
-    <Exec ContinueOnError="false" Command="&quot;..\packages\Brutal.Dev.StrongNameSigner.1.5.1\tools\StrongNameSigner.Console.exe&quot; -in &quot;..\packages\DokanNet.1.0.7.0\lib\net40&quot;" />
+    <Exec ContinueOnError="false" Command="&quot;..\packages\Brutal.Dev.StrongNameSigner.1.5.1\tools\StrongNameSigner.Console.exe&quot; -in &quot;..\packages\DokanNet.1.0.8.0\lib\net40&quot;" />
   </Target>
 </Project>
