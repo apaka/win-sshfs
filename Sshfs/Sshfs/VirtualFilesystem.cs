@@ -100,14 +100,24 @@ namespace Sshfs
 
         #region DokanOperations
 
-        DokanError IDokanOperations.CreateFile(string fileName, FileAccess access, FileShare share,
+        NtStatus IDokanOperations.CreateFile(string fileName, FileAccess access, FileShare share,
                                                FileMode mode, FileOptions options,
                                                FileAttributes attributes, DokanFileInfo info)
         {
+            if (info.IsDirectory)
+            {
+                if (mode == FileMode.Open)
+                    return OpenDirectory(fileName, info);
+                if (mode == FileMode.CreateNew)
+                    return CreateDirectory(fileName, info);
+
+                return NtStatus.NotImplemented;
+            }
+
             if (fileName.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith("autorun.inf", StringComparison.OrdinalIgnoreCase)) //....
             {
-                return DokanError.ErrorFileNotFound;
+                return NtStatus.NoSuchFile;
             }
 
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
@@ -119,7 +129,7 @@ namespace Sshfs
                 if (idops == null)
                 {
                     //this happens if mounting failed
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
                 return idops.CreateFile(fileName, access, share, mode, options, attributes, info);
             }
@@ -132,7 +142,7 @@ namespace Sshfs
                 //info.IsDirectory = true;
                 info.Context = null;
                 LogFSActionSuccess("OpenFile", fileName, null, "VFS root");
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
             foreach (SftpDrive drive2 in this._subsytems)
             {
@@ -143,7 +153,7 @@ namespace Sshfs
                         info.IsDirectory = true;
                         info.Context = drive2;
                         LogFSActionSuccess("OpenFile", fileName, drive2, "VFS (sub)mountpoint");
-                        return DokanError.ErrorSuccess;
+                        return NtStatus.Success;
                     }
                 }
             }
@@ -151,7 +161,7 @@ namespace Sshfs
             //pathnotfound detection?
 
             LogFSActionError("OpenFile", fileName, null, "File not found");
-            return DokanError.ErrorFileNotFound;
+            return NtStatus.NoSuchFile;
         }
 
         private SftpDrive GetDriveByMountPoint(string fileName, out string subfspath)
@@ -237,7 +247,7 @@ namespace Sshfs
             return ((IDokanOperations)drive._filesystem);
         }
 
-        DokanError IDokanOperations.OpenDirectory(string fileName, DokanFileInfo info)
+        private NtStatus OpenDirectory(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             LogFSActionInit("OpenDir", fileName, drive, "");
@@ -250,17 +260,17 @@ namespace Sshfs
                 if (ops == null)
                 {
                     LogFSActionError("OpenDir", fileName, drive, "Cannot open, mount failed?");
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, subsytem");
-                return ops.OpenDirectory(fileName, info);
+                return ops.CreateFile(fileName, FileAccess.GenericRead, FileShare.None, FileMode.Open, FileOptions.None, FileAttributes.Directory, info);
             }
 
             if (fileName.Length == 1) //root dir
             {
                 LogFSActionSuccess("OpenDir", fileName, drive, "Found, VFS root");
                 info.IsDirectory = true;
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
 
             
@@ -278,7 +288,7 @@ namespace Sshfs
                     info.Context = subdrive;
                     info.IsDirectory = true;
                     LogFSActionSuccess("OpenDir", fileName, drive, "Found, final mountpoint");
-                    return DokanError.ErrorSuccess;
+                    return NtStatus.Success;
                 }
 
                 if (mp.IndexOf(path + '\\') == 0)
@@ -286,30 +296,31 @@ namespace Sshfs
                     info.Context = subdrive;
                     info.IsDirectory = true;
                     LogFSActionSuccess("OpenDir", fileName, drive, "Found, part of mountpoint");
-                    return DokanError.ErrorSuccess;
+                    return NtStatus.Success;
                 }
             }
             LogFSActionError("OpenDir", fileName, drive, "Path not found");
-            return DokanError.ErrorPathNotFound;
+            return NtStatus.ObjectPathNotFound;
         }
 
-        DokanError IDokanOperations.CreateDirectory(string fileName, DokanFileInfo info)
+        private NtStatus CreateDirectory(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
-                return GetSubSystemOperations(drive).CreateDirectory(fileName, info);
+                return GetSubSystemOperations(drive).CreateFile(fileName, FileAccess.GenericRead, FileShare.None, FileMode.CreateNew, FileOptions.None, FileAttributes.Directory, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
+        void IDokanOperations.Cleanup(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             LogFSActionInit("Cleanup", fileName, drive, "");
             if (drive != null)
             {
                 LogFSActionSuccess("Cleanup", fileName, drive, "nonVFS clean");
-                return GetSubSystemOperations(drive).Cleanup(fileName, info);
+                GetSubSystemOperations(drive).Cleanup(fileName, info);
+                return;
             }
 
             if (info.Context != null)
@@ -319,17 +330,18 @@ namespace Sshfs
             }
 
             LogFSActionSuccess("Cleanup", fileName, drive, "VFS clean");
-            return DokanError.ErrorSuccess;
+            return;
         }
 
-        DokanError IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
+        void IDokanOperations.CloseFile(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             LogFSActionInit("CloseFile", fileName, drive, "");
             if (drive != null)
             {
                 LogFSActionSuccess("CloseFile", fileName, drive, "NonVFS close");
-                return GetSubSystemOperations(drive).CloseFile(fileName, info);
+                GetSubSystemOperations(drive).CloseFile(fileName, info);
+                return;
             }
 
             if (info.Context != null)
@@ -339,11 +351,11 @@ namespace Sshfs
             }
 
             LogFSActionSuccess("CloseFile", fileName, drive, "VFS close");
-            return DokanError.ErrorSuccess;
+            return;
         }
 
 
-        DokanError IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
+        NtStatus IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
                                              DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
@@ -351,10 +363,10 @@ namespace Sshfs
                 return GetSubSystemOperations(drive).ReadFile(fileName, buffer, out bytesRead, offset, info);
 
             bytesRead = 0;
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
+        NtStatus IDokanOperations.WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
                                               DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
@@ -362,20 +374,20 @@ namespace Sshfs
                 return GetSubSystemOperations(drive).WriteFile(fileName, buffer, out bytesWritten, offset, info);
 
             bytesWritten = 0;
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
 
-        DokanError IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).FlushFileBuffers(fileName, info);
 
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
+        NtStatus IDokanOperations.GetFileInformation(string fileName, out FileInformation fileInfo,
                                                        DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
@@ -401,7 +413,7 @@ namespace Sshfs
             if (fileName.Length == 1)
             { //root dir
                 LogFSActionSuccess("FileInfo", fileName, drive, "root info");
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
 
             string path = fileName.Substring(1);//cut leading \
@@ -410,7 +422,7 @@ namespace Sshfs
             {
                 drive = info.Context as SftpDrive;
                 LogFSActionSuccess("FileInfo", fileName, drive, "from context");
-                return DokanError.ErrorSuccess;
+                return NtStatus.Success;
             }
 
             foreach (SftpDrive subdrive in _subsytems)
@@ -421,24 +433,24 @@ namespace Sshfs
                     info.Context = mp;
                     //fileInfo.FileName = path.Substring(path.LastIndexOf("\\")+1);
                     LogFSActionSuccess("FileInfo", fileName, drive, "final mountpoint");
-                    return DokanError.ErrorSuccess;
+                    return NtStatus.Success;
                 }
 
                 if (mp.IndexOf(path + '\\') == 0)
                 { //path is part of mount point
                     //fileInfo.FileName = path.Substring(path.LastIndexOf("\\") + 1);
                     LogFSActionSuccess("FileInfo", fileName, drive, "part of mountpoint");
-                    return DokanError.ErrorSuccess;
+                    return NtStatus.Success;
                 }
             }
 
             LogFSActionError("FileInfo", fileName, drive, "path not found");
-            return DokanError.ErrorPathNotFound;
+            return NtStatus.ObjectPathNotFound;
 
 
         }
 
-        DokanError IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
+        NtStatus IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             LogFSActionError("FindFiles", fileName, drive, "!? not using FindFilesWithPattern !?");
@@ -491,49 +503,49 @@ namespace Sshfs
                 }
             }
            
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
+        NtStatus IDokanOperations.SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
             Log("VFS TrySetAttributes:{0}\n{1};", fileName, attributes);
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).SetFileAttributes(fileName, attributes, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
+        NtStatus IDokanOperations.SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime,
                                                 DateTime? lastWriteTime, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).SetFileTime(fileName, creationTime, lastAccessTime, lastWriteTime, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.DeleteFile(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.DeleteFile(string fileName, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).DeleteFile(fileName, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.DeleteDirectory(string fileName, DokanFileInfo info)
+        NtStatus IDokanOperations.DeleteDirectory(string fileName, DokanFileInfo info)
         {
             Log("VFS DeleteDirectory:{0}", fileName);
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).DeleteDirectory(fileName, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
+        NtStatus IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
             Log("VFS MoveFile |Name:{0} ,NewName:{3},Reaplace{4},IsDirectory:{1} ,Context:{2}",
                 oldName, info.IsDirectory,
@@ -547,51 +559,51 @@ namespace Sshfs
                 {
                     //This is server2server move - Total commander handles this by copy&delete, explorer ends with error
                     //background direct copy between 2 sftp is nice but not real
-                    return DokanError.ErrorNotImplemented;
+                    return NtStatus.NotImplemented;
                 }
 
                 return GetSubSystemOperations(drive).MoveFile(oldName, newName, replace, info);
             }
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.SetEndOfFile(string fileName, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).SetEndOfFile(fileName,length, info);
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.SetAllocationSize(string fileName, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
             Log("VFS SetSize");
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).SetAllocationSize(fileName, length, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.LockFile(string fileName, long offset, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.LockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).LockFile(fileName, offset, length, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
+        NtStatus IDokanOperations.UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
             if (drive != null)
                 return GetSubSystemOperations(drive).UnlockFile(fileName, offset, length, info);
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.GetDiskFreeSpace(out long free, out long total,
+        NtStatus IDokanOperations.GetDiskFreeSpace(out long free, out long total,
                                                      out long used, DokanFileInfo info)
         {
             Log("VFS GetDiskFreeSpace");
@@ -610,10 +622,10 @@ namespace Sshfs
             used = 4;
             free = total - used;
 
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
+        NtStatus IDokanOperations.GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                          out string filesystemName, DokanFileInfo info)
         {
             LogFSActionSuccess("DiskInfo", _volumeLabel, null, "");
@@ -627,10 +639,10 @@ namespace Sshfs
             //FileSystemFeatures.PersistentAcls
 
 
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
         }
 
-        DokanError IDokanOperations.GetFileSecurity(string fileName, out FileSystemSecurity security,
+        NtStatus IDokanOperations.GetFileSecurity(string fileName, out FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
             Log("VFS GetSecurrityInfo:{0}:{1}", fileName, sections);
@@ -640,10 +652,10 @@ namespace Sshfs
                 return GetSubSystemOperations(drive).GetFileSecurity(fileName, out security, sections, info);
 
             security = null;
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.SetFileSecurity(string fileName, FileSystemSecurity security,
+        NtStatus IDokanOperations.SetFileSecurity(string fileName, FileSystemSecurity security,
                                                     AccessControlSections sections, DokanFileInfo info)
         {
             Log("VFS TrySetSecurity:{0}", fileName);
@@ -651,15 +663,26 @@ namespace Sshfs
             if (drive != null)
                 return GetSubSystemOperations(drive).SetFileSecurity(fileName, security, sections, info);
 
-            return DokanError.ErrorAccessDenied;
+            return NtStatus.AccessDenied;
         }
 
-        DokanError IDokanOperations.Unmount(DokanFileInfo info)
+        NtStatus IDokanOperations.Unmounted(DokanFileInfo info)
         {
-            Log("UNMOUNT");
-
+            Log("UNMOUNTED");
             // Disconnect();
-            return DokanError.ErrorSuccess;
+            return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.Mounted(DokanFileInfo info)
+        {
+            Log("MOUNTED");
+            return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
+        {
+            streams = new FileInformation[0];
+            return NtStatus.NotImplemented;
         }
 
         #endregion
