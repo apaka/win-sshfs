@@ -301,7 +301,7 @@ namespace Sshfs
             }
 
             LogFSActionInit("OpenFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1}", mode,options);
-            
+
 
             string path = GetUnixPath(fileName);
             var sftpFileAttributes = this.CacheGetAttr(path);
@@ -350,6 +350,10 @@ namespace Sshfs
                     else
                     {
                         LogFSActionError("OpenFile", fileName, (SftpContext)info.Context, "File not found");
+                        /*if (share.HasFlag(FileShare.Delete) )
+                        {
+                            return DokanError.ErrorAccessDenied;//t08/3
+                        }*/
                         return DokanError.ErrorFileNotFound;
                     }
                     break;
@@ -377,6 +381,10 @@ namespace Sshfs
                                                ((ulong) access & 0x40010006) == 0
                                                    ? System.IO.FileAccess.Read
                                                    : System.IO.FileAccess.ReadWrite, sftpFileAttributes);
+                if (sftpFileAttributes != null)
+                {
+                    return DokanError.ErrorAlreadyExists;
+                }
             }
             catch (SshException ex) // Don't have access rights or try to read broken symlink
             {
@@ -1124,6 +1132,10 @@ namespace Sshfs
 
                 info.Context = null;
 
+                if (sftpFileAttributes.IsDirectory)
+                {
+                    return DokanError.ErrorAccessDenied;
+                }
 
                 try
                 {
@@ -1136,6 +1148,10 @@ namespace Sshfs
                         if (!info.IsDirectory)
                             DeleteFile(newpath);
                         RenameFile(oldpath, newpath, false);
+                    }
+                    catch (SftpPathNotFoundException)
+                    {
+                        return DokanError.ErrorAccessDenied;
                     }
 
                     CacheReset(oldpath);
