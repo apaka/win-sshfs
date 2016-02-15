@@ -521,7 +521,14 @@ namespace Sshfs
                 }
                 else
                 {
-                    DeleteFile(path);
+                    try
+                    {
+                        DeleteFile(path);
+                    }
+                    catch (SftpPathNotFoundException)
+                    {
+                        //not existing file
+                    }
                 }
                 CacheReset(path);
                 CacheResetParent(path);
