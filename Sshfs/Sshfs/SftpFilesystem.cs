@@ -308,7 +308,24 @@ namespace Sshfs
             if (info.IsDirectory)
             {
                 if (mode == FileMode.Open)
-                    return OpenDirectory(fileName, info);
+                {
+                    NtStatus status = OpenDirectory(fileName, info);
+                    
+                    try
+                    {
+                        if (status == NtStatus.ObjectNameNotFound)
+                        {
+                            GetAttributes(fileName);
+                            //no expception -> its file
+                            return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY    
+                        }
+                    }
+                    catch (SftpPathNotFoundException e)
+                    {
+                    }
+                    return status;
+
+                }
                 if (mode == FileMode.CreateNew)
                     return CreateDirectory(fileName, info);
 
@@ -456,9 +473,9 @@ namespace Sshfs
                 {
                     sftpFileAttributes = GetAttributes(path);
                 }
-                catch (SftpPathNotFoundException e)
+                catch (SftpPathNotFoundException)
                 {
-                    Debug.WriteLine("File not found");
+                    Debug.WriteLine("Dir not found");
                     sftpFileAttributes = null;
                 }
                 if (sftpFileAttributes != null)
@@ -468,8 +485,12 @@ namespace Sshfs
          
 
 
-            if (sftpFileAttributes != null && sftpFileAttributes.IsDirectory)
+            if (sftpFileAttributes != null)
             {
+                if (!sftpFileAttributes.IsDirectory)
+                {
+                    return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY
+                }
                 if (!UserCanExecute(sftpFileAttributes) || !UserCanRead(sftpFileAttributes))
                 {
                     return NtStatus.AccessDenied;
@@ -488,7 +509,8 @@ namespace Sshfs
                 return NtStatus.Success;
             }
             LogFSActionError("OpenDir", fileName, (SftpContext)info.Context,"Path not found");
-            return NtStatus.ObjectPathNotFound;
+            //return NtStatus.ObjectPathNotFound;            
+            return NtStatus.ObjectNameNotFound;
         }
 
         private NtStatus CreateDirectory(string fileName, DokanFileInfo info)
@@ -1024,7 +1046,11 @@ namespace Sshfs
                     //_cache.Add(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
                     CacheAddAttr(parentPath, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
-
+            /* shoud be tested, but performance...
+            if (IsDirectory)
+            {
+                return NtStatus.AccessDenied;
+            }*/
 
             LogFSActionSuccess("DeleteFile", fileName, (SftpContext)info.Context, "Success:{0}", UserCanWrite(sftpFileAttributes));
             return
