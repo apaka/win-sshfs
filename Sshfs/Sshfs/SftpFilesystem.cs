@@ -728,9 +728,7 @@ namespace Sshfs
 
 
             fileInfo = new FileInformation
-                           {
-                               Attributes =
-                                   FileAttributes.NotContentIndexed,
+            {
                                FileName = Path.GetFileName(fileName), //String.Empty,
                                // GetInfo info doesn't use it maybe for sorting .
                                CreationTime = sftpFileAttributes.LastWriteTime,
@@ -743,20 +741,16 @@ namespace Sshfs
                 fileInfo.Attributes |= FileAttributes.Directory;
                 fileInfo.Length = 0; // Windows directories use length of 0 
             }
-            else
-            {
-                fileInfo.Attributes |= FileAttributes.Normal;
-            }
             if (fileName.Length != 1 && fileName[fileName.LastIndexOf('\\') + 1] == '.')
                 //aditional check if filename isn't \\
             {
                 fileInfo.Attributes |= FileAttributes.Hidden;
             }
 
-            if (GroupRightsSameAsOwner(sftpFileAttributes))
+            /*if (GroupRightsSameAsOwner(sftpFileAttributes))
             {
                 fileInfo.Attributes |= FileAttributes.Archive;
-            }
+            }*/
             if (_useOfflineAttribute)
             {
                 fileInfo.Attributes |= FileAttributes.Offline;
@@ -765,6 +759,11 @@ namespace Sshfs
             if (!this.UserCanWrite(sftpFileAttributes))
             {
                 fileInfo.Attributes |= FileAttributes.ReadOnly;
+            }
+
+            if (fileInfo.Attributes == 0)
+            {
+                fileInfo.Attributes = FileAttributes.Normal;//can be only alone
             }
 
             LogFSActionSuccess("FileInfo", fileName, (SftpContext)info.Context, "Length:{0} Attrs:{1}", fileInfo.Length, fileInfo.Attributes);
