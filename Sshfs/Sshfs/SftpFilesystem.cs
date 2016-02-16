@@ -32,13 +32,21 @@ using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using FileAccess = DokanNet.FileAccess;
 using System.Text.RegularExpressions;
-
+using System.Runtime.InteropServices;
 
 namespace Sshfs
 {
+
     internal sealed class SftpFilesystem : SftpClient, IDokanOperations
     {
-        
+
+        /// <summary>
+        /// Sets the last-error code for the calling thread.
+        /// </summary>
+        /// <param name="dwErrorCode">The last-error code for the thread.</param>
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern void SetLastError(uint dwErrorCode);
+
         #region Constants
 
         #endregion
@@ -390,9 +398,10 @@ namespace Sshfs
                                                ((ulong) access & 0x40010006) == 0
                                                    ? System.IO.FileAccess.Read
                                                    : System.IO.FileAccess.ReadWrite, sftpFileAttributes);
-                if (sftpFileAttributes != null)
+                if ( sftpFileAttributes != null)
                 {
-                    return DokanError.ErrorAlreadyExists;
+
+                    SetLastError(183); //ERROR_ALREADY_EXISTS
                 }
             }
             catch (SshException ex) // Don't have access rights or try to read broken symlink
@@ -1139,7 +1148,7 @@ namespace Sshfs
 
                 if (sftpFileAttributes.IsDirectory)
                 {
-                    return DokanError.ErrorAccessDenied;
+                    return NtStatus.AccessDenied;
                 }
 
                 try
@@ -1156,7 +1165,7 @@ namespace Sshfs
                     }
                     catch (SftpPathNotFoundException)
                     {
-                        return DokanError.ErrorAccessDenied;
+                        return NtStatus.AccessDenied;
                     }
 
                     CacheReset(oldpath);
