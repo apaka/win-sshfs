@@ -481,9 +481,6 @@ namespace Sshfs
                 if (sftpFileAttributes != null)
                     CacheAddAttr(path, sftpFileAttributes, DateTimeOffset.UtcNow.AddSeconds(_attributeCacheTimeout));
             }
-            
-         
-
 
             if (sftpFileAttributes != null)
             {
@@ -500,8 +497,8 @@ namespace Sshfs
                 info.IsDirectory = true;
                 info.Context = new SftpContext(sftpFileAttributes);
                 
-                var dircahe = CacheGetDir(path);
-                if (dircahe != null && dircahe.Item1 != sftpFileAttributes.LastWriteTime)
+                var dircache = CacheGetDir(path);
+                if (dircache != null && dircache.Item1 != sftpFileAttributes.LastWriteTime)
                 {
                     CacheReset(path);
                 }
@@ -851,7 +848,18 @@ namespace Sshfs
                                                     };
                         if (sftpFileAttributes.IsSymbolicLink)
                         {
-                            //fileInformation.Attributes |= FileAttributes.ReparsePoint;
+                            try
+                            {
+                                SftpFile symTarget = GetSymbolicLinkTarget(file.FullName);
+                                
+                                if (symTarget.Attributes.IsDirectory)
+                                {
+                                    fileInformation.Attributes |= FileAttributes.Directory;
+                                }
+                            } catch (Exception)
+                            {
+                                Debug.WriteLine("Error getting the symlink target.");
+                            }
                             //link?
                         }
 
