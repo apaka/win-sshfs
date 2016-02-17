@@ -628,7 +628,7 @@ namespace Sshfs
             }
             else
             {
-                SftpFileStream stream = (info.Context as SftpContext).Stream;
+                SftpContextStream stream = (info.Context as SftpContext).Stream;
                 lock (stream)
                 {
                     stream.Position = offset;
@@ -661,8 +661,8 @@ namespace Sshfs
                     {
                         Log("Data: {0}", Encoding.ASCII.GetString(buffer));
                     }
-                    
-                    SftpFileStream stream = (info.Context as SftpContext).Stream;
+
+                    SftpContextStream stream = (info.Context as SftpContext).Stream;
                     lock (stream)
                     {
                         stream.Position = offset;

@@ -24,7 +24,7 @@ namespace Sshfs
     internal sealed class SftpContext : IDisposable
     {
         private SftpFileAttributes _attributes;
-        private SftpFileStream _stream;
+        private SftpContextStream _stream;
 
         public bool deleteOnCloseWorkaround = false;
 
@@ -42,7 +42,8 @@ namespace Sshfs
         public SftpContext(SftpClient client, string path, FileMode mode, FileAccess access,
                         SftpFileAttributes attributes)
         {
-            _stream = client.Open(path, mode, access);
+            //_stream = client.Open(path, mode, access);
+            _stream = new SftpContextStream(client.getSftpSession(), path, mode, access, attributes);
             _attributes = attributes;
         }
 
@@ -51,7 +52,7 @@ namespace Sshfs
             get { return _attributes; }
         }
 
-        public SftpFileStream Stream
+        public SftpContextStream Stream
         {
             get { return _stream; }
         }

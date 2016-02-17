@@ -125,6 +125,7 @@
     </Compile>
     <Compile Include="DriveStatus.cs" />
     <Compile Include="ContextMenuStripThemedRenderer.cs" />
+    <Compile Include="SftpContextStream.cs" />
     <Compile Include="SftpManagerApplication.cs" />
     <Compile Include="ConnectionType.cs" />
     <Compile Include="MainForm.cs">
