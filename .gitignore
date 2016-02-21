@@ -14,3 +14,6 @@ TestResults
 /Dokan
 /bluescreenview
 /Sshfs/Sshfs/Properties/AssemblyInfo.cs.bak
+/Sshfs/.nuget
+/Sshfs/Packages.dgml
+/Sshfs/packages

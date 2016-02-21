@@ -16,10 +16,11 @@
 // THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Renci.SshNet.Sftp;
+using Renci.SshNet.Common;
+using System.Collections.Generic;
 
 namespace Sshfs
 {
@@ -157,7 +158,7 @@ namespace Sshfs
             {
                 if (!_writeMode)
                 {
-                    long newPosn = _position - _readBufferPosition;
+                   /* long newPosn = _position - _readBufferPosition;
                     if (value >= newPosn && value <
                         (newPosn + _readBuffer.Length))
                     {
@@ -167,7 +168,7 @@ namespace Sshfs
                     {
                         _readBufferPosition = 0;
                         _readBuffer = new byte[0];
-                    }
+                    }*/
                 }
                 else
                 {
@@ -209,61 +210,54 @@ namespace Sshfs
             }
         }
 
-
-        public override int Read(byte[] buffer, int offset, int count)
+        private void ReadRequestSend(
+                            long position, int count, 
+                            byte[] buffer, int bufferOffset, 
+                            EventWaitHandle wait, Action<int> Received)
         {
-            int readLen = 0;
+            _session.RequestReadAsync(_handle, (ulong)(position), checked((uint)count), wait,
+                    response => {
+                        Buffer.BlockCopy(response.Data, 0, buffer, bufferOffset, response.Data.Length);
+                        Received(response.Data.Length);
+                        wait.Set();
+                    }
+            );
+        }
 
 
-            // Lock down the file stream while we do this.
-
+        public override int Read(byte[] buffer, int bufferOffset, int bufferCount)
+        {
             // Set up for the read operation.
             SetupRead();
 
-            // Read data into the caller's buffer.
-            while (count > 0)
+            List<EventWaitHandle> waits = new List<EventWaitHandle>();
+
+            int readCount = bufferCount;
+            int winOffset = 0;
+            int receivedTotal = 0;
+                 
+            while (readCount > 0)
             {
-                // How much data do we have available in the buffer?
-                int tempLen = _readBuffer.Length - _readBufferPosition;
-                if (tempLen <= 0)
-                {
-                    _readBufferPosition = 0;
+                int winSize = readCount > READ_BUFFER_SIZE ? READ_BUFFER_SIZE : readCount;
 
-                    _readBuffer = _session.RequestRead(_handle, (ulong) _position, checked((uint)READ_BUFFER_SIZE));
+                EventWaitHandle wait = new AutoResetEvent(false);
+                waits.Add(wait);
 
+                this.ReadRequestSend(
+                            _position + winOffset, winSize, 
+                            buffer, bufferOffset + winOffset, 
+                            wait, received => { receivedTotal += received; }
+                );
 
-                    if (_readBuffer.Length > 0)
-                    {
-                        tempLen = _readBuffer.Length;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-
-                // Don't read more than the caller wants.
-                if (tempLen > count)
-                {
-                    tempLen = count;
-                }
-
-                // Copy stream data to the caller's buffer.
-                Debug.WriteLine("Copy:{0},{1},{2},{3},{4}",_readBuffer,_readBufferPosition,buffer,offset,tempLen);
-                Buffer.BlockCopy(_readBuffer, _readBufferPosition, buffer, offset, tempLen);
-
-                // Advance to the next buffer positions.
-                readLen += tempLen;
-                offset += tempLen;
-                count -= tempLen;
-                _readBufferPosition += tempLen;
-                _position += tempLen;
+                winOffset += winSize;
+                readCount -= winSize;
             }
 
-
-            // Return the number of bytes that were read to the caller.
-            return readLen;
+            if (!WaitHandle.WaitAll(waits.ToArray(), this.ReadTimeout)) { 
+                throw new SshOperationTimeoutException("Timeout on wait");
+            }
+            _position = _position + receivedTotal;
+            return receivedTotal;
         }
 
 

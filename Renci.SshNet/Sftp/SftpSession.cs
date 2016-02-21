@@ -361,6 +361,47 @@ namespace Renci.SshNet.Sftp
         }
 
         /// <summary>
+        /// Performs SSH_FXP_READ request.
+        /// </summary>
+        /// <param name="handle">The handle.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns>data array; null if EOF</returns>
+        internal bool RequestReadAsync(byte[] handle, UInt64 offset, UInt32 length, EventWaitHandle wait, Action<SftpDataResponse> readCompleted)
+        {
+            SshException exception = null;
+
+            var request = new SftpReadRequest(this.ProtocolVersion, this.NextRequestId, handle, offset, length,
+                (response) =>//data
+                {
+                    if (readCompleted != null)
+                    {
+                        readCompleted(response);
+                    }
+                    if (wait != null)
+                        wait.Set();
+                },
+                (response) =>//status
+                {
+                    exception = this.GetSftpException(response);
+                    if (wait != null)
+                        wait.Set();
+                });
+
+            this.SendRequest(request);
+
+            //if (wait != null)
+              //  this.WaitOnHandle(wait, this._operationTimeout);
+
+            if (exception != null)
+            {
+                throw exception;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Performs SSH_FXP_WRITE request.
         /// </summary>
         /// <param name="handle">The handle.</param>
