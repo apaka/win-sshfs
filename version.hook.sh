@@ -28,7 +28,7 @@ then
 	#echo "${COMMITS[0]}"
 
 	#This will be the version in the format <major>.<minor>.<build number> (.<revision> remove revision, amend of version inside will be ok with this)
-	version="${TAG[0]}"."${TAG[1]}"."${TAG[2]}"."${TAG[3]}"
+	version="${TAG[0]}"."${TAG[1]}"."${TAG[2]}"."${COMMITS[0]}"
 	echo $version
 
 	#Update the AssemblyVersion and AssemblyFileVersion attribute with the 'version'
