@@ -28,10 +28,8 @@ namespace Sshfs
     {
 
         private int WRITE_BUFFER_SIZE;
-        private int READ_BUFFER_SIZE;
+        //private int READ_BUFFER_SIZE;
         private readonly byte[] _writeBuffer;
-        private byte[] _readBuffer = new byte[0];
-
 
         private readonly SftpSession _session;
         private SftpFileAttributes _attributes;
@@ -39,7 +37,6 @@ namespace Sshfs
 
         private bool _writeMode;
         private int _writeBufferPosition;
-        private int _readBufferPosition;
         private long _position;
 
         internal SftpContextStream(SftpSession session, string path, FileMode mode, FileAccess access,
@@ -95,7 +92,7 @@ namespace Sshfs
             _attributes = attributes ?? _session.RequestFStat(_handle);
 
             WRITE_BUFFER_SIZE = (int)session.CalculateOptimalWriteLength(65536, _handle);
-            READ_BUFFER_SIZE = (int)session.CalculateOptimalReadLength(65536);
+            //READ_BUFFER_SIZE = (int)session.CalculateOptimalReadLength(65536);
 
             if (access.HasFlag(FileAccess.Write))
             {
@@ -115,10 +112,6 @@ namespace Sshfs
                 {
                     if (_writeMode)
                     {
-
-
-
-
                         //FlushWriteBuffer();
                         SetupRead();
                         _attributes = _session.RequestFStat(_handle);
@@ -158,17 +151,7 @@ namespace Sshfs
             {
                 if (!_writeMode)
                 {
-                   /* long newPosn = _position - _readBufferPosition;
-                    if (value >= newPosn && value <
-                        (newPosn + _readBuffer.Length))
-                    {
-                        _readBufferPosition = (int) (value - newPosn);
-                    }
-                    else
-                    {
-                        _readBufferPosition = 0;
-                        _readBuffer = new byte[0];
-                    }*/
+
                 }
                 else
                 {
@@ -200,26 +183,23 @@ namespace Sshfs
                 }
                 else
                 {
-                    /*  if (_bufferPosn < _bufferLen)
-                {
-                    _position -= _bufferPosn;
-                }*/
-                    _readBufferPosition = 0;
-                    _readBuffer = new byte[0];
                 }
             }
         }
 
-        private void ReadRequestSend(
+        private void ReadToBufferAsync(
                             long position, int count, 
                             byte[] buffer, int bufferOffset, 
                             EventWaitHandle wait, Action<int> Received)
         {
             _session.RequestReadAsync(_handle, (ulong)(position), checked((uint)count), wait,
                     response => {
-                        Buffer.BlockCopy(response.Data, 0, buffer, bufferOffset, response.Data.Length);
+                        lock (buffer)
+                        {
+                            Buffer.BlockCopy(response.Data, 0, buffer, bufferOffset, response.Data.Length);
+                        }
                         Received(response.Data.Length);
-                        wait.Set();
+                        //wait.Set();
                     }
             );
         }
@@ -231,6 +211,7 @@ namespace Sshfs
             SetupRead();
 
             List<EventWaitHandle> waits = new List<EventWaitHandle>();
+            int READ_BUFFER_SIZE = checked((int)this._session.CalculateOptimalReadLength(65536-13));
 
             int readCount = bufferCount;
             int winOffset = 0;
@@ -241,21 +222,23 @@ namespace Sshfs
                 int winSize = readCount > READ_BUFFER_SIZE ? READ_BUFFER_SIZE : readCount;
 
                 EventWaitHandle wait = new AutoResetEvent(false);
+                wait.Reset();
                 waits.Add(wait);
 
-                this.ReadRequestSend(
+                this.ReadToBufferAsync(
                             _position + winOffset, winSize, 
                             buffer, bufferOffset + winOffset, 
-                            wait, received => { receivedTotal += received; }
+                            wait, received => { Interlocked.Add(ref receivedTotal, received); }
                 );
 
                 winOffset += winSize;
                 readCount -= winSize;
             }
 
-            if (!WaitHandle.WaitAll(waits.ToArray(), this.ReadTimeout)) { 
+            if (!WaitHandle.WaitAll(waits.ToArray(), 20000)) { 
                 throw new SshOperationTimeoutException("Timeout on wait");
             }
+            
             _position = _position + receivedTotal;
             return receivedTotal;
         }
@@ -397,35 +380,6 @@ namespace Sshfs
             }
         }
 
-/*
-        private void FlushWriteBufferNoPipelining()
-        {
-            const int maximumDataSize = 1024 * 32 - 38;
-            Console.WriteLine("FLUSHHHH the water no pipe");
-            if (_writeBufferPosition > 0)
-            {
-                Console.WriteLine("Written:{0}", _writeBufferPosition);
-       
-                 int block = ((_writeBufferPosition - 1) / maximumDataSize) + 1;
-                 for (int i = 0; i < block; i++)
-                 {
-                     var blockBufferSize = Math.Min(_writeBufferPosition - maximumDataSize * i, maximumDataSize);
-                     var blockBuffer = new byte[blockBufferSize];
-
-                     Buffer.BlockCopy(_writeBuffer, i*maximumDataSize, blockBuffer, 0, blockBufferSize);
-
-                     using (var wait = new AutoResetEvent(false))
-                     {
-                         _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition+i*maximumDataSize), blockBuffer, wait);
-                     }
-                 }
-
-                _writeBufferPosition = 0;
-            }
-        }
-*/
-
-
         private void SetupRead()
         {
             if (_writeMode)
@@ -440,13 +394,7 @@ namespace Sshfs
         {
             if (_writeMode) return;
 
-            /*  if (_bufferPosn < _bufferLen)
-            {
-                _position -= _bufferPosn;
-            }*/
-            _readBufferPosition = 0;
             _writeBufferPosition = 0;
-            _readBuffer = new byte[0];
             _writeMode = true;
         }
     }
