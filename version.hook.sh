@@ -5,10 +5,11 @@
 #This file needs to be place in the .git/hooks/ folder and only works when a git pull is
 #made which contains changes in the remote repo.
 
-PRODUCT="WinSshFS 4every1 edition"
+PRODUCT="WinSshFS Foreveryone edition"
 
 #get the latest tag info. The 'always' flag will give you a shortened SHA1 if no tag exists.
 tag=$(git describe --tags --long)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 #tag="A.B.C.D-X-hash"
 echo $tag
@@ -34,6 +35,6 @@ then
 	#Update the AssemblyVersion and AssemblyFileVersion attribute with the 'version'
 	sed -i.bak "s/\AssemblyVersion(\".*\")/AssemblyVersion(\"$version\")/g" $AI 2>/dev/null
 	sed -i.bak "s/\AssemblyFileVersion(\".*\")/AssemblyFileVersion(\"$version\")/g" $AI 2>/dev/null
-	sed -i.bak "s/AssemblyProduct(\".*\")/AssemblyProduct(\"$PRODUCT $version-${COMMITS[0]}\")/g" $AI 2>/dev/null
+	sed -i.bak "s/AssemblyProduct(\".*\")/AssemblyProduct(\"$PRODUCT $version-${BRANCH}\")/g" $AI 2>/dev/null
 	#cat $AI
 fi
