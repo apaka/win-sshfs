@@ -53,6 +53,21 @@ namespace Sshfs
             }
         }
 
+        private static void doBackups(string filepath)
+        {
+            if (File.Exists(filepath))
+            {
+                string bak = filepath + "~bak";
+                if (!File.Exists(bak))
+                {
+                    File.Move(filepath, bak);
+                }
+                else {
+                    File.Replace(filepath, bak, bak + "Prev", true);
+                }
+            }
+        }
+
         public static void Persist<T>(this List<T> list, string file, bool delete = false) where T : ISerializable
 
         {
@@ -63,6 +78,8 @@ namespace Sshfs
             }
             else
             {
+                doBackups(filepath);
+
                 var xmlSerializer = new DataContractSerializer(typeof (List<T>));
                 using (
                     var stream = File.Open(filepath, FileMode.Create,
@@ -83,12 +100,15 @@ namespace Sshfs
             }
             else
             {
+                doBackups(filepath);
+
                 var xmlSerializer = new DataContractSerializer(typeof(List<T>));
                 using (
                     var stream = File.Open(filepath, FileMode.Create,
                                                                 FileAccess.Write))
                 {
                     xmlSerializer.WriteObject(stream, obj);
+                    stream.Close();
                 }
             }
         }

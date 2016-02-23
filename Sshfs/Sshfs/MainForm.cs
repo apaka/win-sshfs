@@ -117,8 +117,12 @@ namespace Sshfs
 
             // _drives.Persist("config.xml",true);            
 
-
-            virtualDrive = virtualDrive.Load("vfs.xml");
+            try {
+                virtualDrive = virtualDrive.Load("vfs.xml");
+            }
+            catch {
+                MessageBox.Show("Unable to load virtual drive info xml file.");
+            }
             if (virtualDrive == null)
             {
                 virtualDrive = new VirtualDrive
@@ -133,7 +137,13 @@ namespace Sshfs
             buttonVFSupdate();
 
 
-            _drives.Load("config.xml");
+            try {
+                _drives.Load("config.xml");
+            }
+            catch
+            {
+                MessageBox.Show("Unable to load config file.");
+            }
 
 
             driveListView.BeginUpdate();
