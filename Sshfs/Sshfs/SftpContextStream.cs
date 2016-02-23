@@ -21,14 +21,30 @@ using System.Threading;
 using Renci.SshNet.Sftp;
 using Renci.SshNet.Common;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Sshfs
 {
     internal sealed class SftpContextStream : Stream
     {
+        /// <summary>
+        ///   Effective size of readRequest. 
+        /// </summary>
+        private int optimalReadRequestSize;
+        private byte[] readBuffer;
+        /// <summary>
+        ///  Position of readBuffer data in source stream
+        /// </summary>
+        private long readBufferPosition;
+        /// <summary>
+        ///  Valid count of data in read buffer
+        /// </summary>
+        private int readBufferCount;
+        private bool readBufferIsAtEOF;
 
         private int WRITE_BUFFER_SIZE;
-        //private int READ_BUFFER_SIZE;
+        
+
         private readonly byte[] _writeBuffer;
 
         private readonly SftpSession _session;
@@ -91,8 +107,11 @@ namespace Sshfs
 
             _attributes = attributes ?? _session.RequestFStat(_handle);
 
-            WRITE_BUFFER_SIZE = (int)session.CalculateOptimalWriteLength(65536, _handle);
-            //READ_BUFFER_SIZE = (int)session.CalculateOptimalReadLength(65536);
+            this.optimalReadRequestSize = checked((int)this._session.CalculateOptimalReadLength(uint.MaxValue));
+            this.readBuffer = new byte[this.optimalReadRequestSize];
+            this.readBufferCount = 0;
+
+            WRITE_BUFFER_SIZE = (int)_session.CalculateOptimalWriteLength(65536, _handle);
 
             if (access.HasFlag(FileAccess.Write))
             {
@@ -187,21 +206,181 @@ namespace Sshfs
             }
         }
 
-        private void ReadToBufferAsync(
-                            long position, int count, 
-                            byte[] buffer, int bufferOffset, 
-                            EventWaitHandle wait, Action<int> Received)
+        /// <summary>
+        ///  Asynchronous read, will copy data to buffer and call Received.
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="count"></param>
+        /// <param name="buffer"></param>
+        /// <param name="bufferOffset"></param>
+        /// <param name="Received"></param>
+        private void ReadAsync(long position, int count, byte[] buffer, int bufferOffset, Action<int> Received)
         {
-            _session.RequestReadAsync(_handle, (ulong)(position), checked((uint)count), wait,
+#if DEBUG
+            Debug.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + " Sending Async read for offset " + bufferOffset);
+#endif
+            this._session.RequestReadAsync(_handle, (ulong)(position), (uint)count,
                     response => {
-                        lock (buffer)
+#if DEBUG
+                        Debug.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" + " Got data for offset " + bufferOffset);
+#endif
+                        if (response.Data != null)
                         {
-                            Buffer.BlockCopy(response.Data, 0, buffer, bufferOffset, response.Data.Length);
+                            lock (buffer)
+                            {
+                                Buffer.BlockCopy(response.Data, 0, buffer, bufferOffset, response.Data.Length);
+                                Received(response.Data.Length);
+                            }
                         }
-                        Received(response.Data.Length);
-                        //wait.Set();
+                        else
+                        {
+                            Received(0);
+                        }
                     }
             );
+        }
+
+        /// <summary>
+        ///   Normal read
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="count"></param>
+        /// <param name="buffer"></param>
+        /// <param name="bufferOffset"></param>
+        /// <returns>Length of received data</returns>
+        private int ReadSync(long position, int count, byte[] buffer, int bufferOffset)
+        {
+            byte[] data = this._session.RequestRead(this._handle, (ulong)position, (uint)count);
+            Buffer.BlockCopy(data, 0, buffer, bufferOffset, data.Length);
+            return data.Length;
+        }
+
+        /// <summary>
+        ///   Update read buffer state with data at position
+        /// </summary>
+        /// <param name="position"></param>
+        private void ReadDataToBufferSync(long position)
+        {
+            this.readBufferCount = this.ReadSync(position, this.optimalReadRequestSize, this.readBuffer, 0);
+            this.readBufferPosition = position;
+            this.readBufferIsAtEOF = this.readBufferCount != this.optimalReadRequestSize || this.readBufferCount == 0;
+        }
+
+        private void ReadDataToBufferASync(long position)
+        {
+            this.ReadAsync(position, this.readBuffer.Length, this.readBuffer, 0, 
+                received => {
+                    this.readBufferPosition = position;
+                    this.readBufferCount = received;
+                });
+        }
+
+        /// <summary>
+        ///   Tryes to satisfy request from readBuffer. Returns count of bytes that hits the buffer.
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="count"></param>
+        /// <param name="dst"></param>
+        /// <param name="dstOffset"></param>
+        /// <param name="isOEF">true if buffer war read to the end and its also EOF</param>
+        /// <returns></returns>
+        private int getDataFromBuffer(long position, int count, byte[] dst, int dstOffset, ref bool isEOF)
+        {
+            if ((position >= this.readBufferPosition) &&
+                (position < this.readBufferPosition + this.readBufferCount)) //atleast partial hit
+            {
+                int hitPosition = (int)(position - this.readBufferPosition);
+                int hitLength = Math.Min(count, this.readBufferCount - hitPosition);
+                Buffer.BlockCopy(this.readBuffer, hitPosition, dst, dstOffset, hitLength);
+
+                isEOF = (this.readBufferIsAtEOF) && (hitPosition + hitLength == this.readBufferCount);
+                return hitLength;
+            }
+            return 0;
+        }
+
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <param name="position">Position to read from</param>
+        /// <param name="count">Count of bytes, unlimited</param>
+        /// <param name="dst">Destination buffer</param>
+        /// <param name="dstOffset">Offset in destination buffer to write from</param>
+        /// <returns>Count of bytes readed to dst</returns>
+        public int getDataAt(long position, int count, byte[] dst, int dstOffset = 0)
+        {
+            int received = 0;
+
+            bool isEOF = false;
+            int hitLength = this.getDataFromBuffer(position, count, dst, dstOffset, ref isEOF);
+            if (hitLength > 0)
+            {
+#if DEBUG
+                Console.WriteLine("Readbuffer hit " + hitLength);
+#endif
+                received    += hitLength;
+                count       -= hitLength;
+                position    += hitLength;
+                dstOffset   += hitLength;
+                if (isEOF || count == 0)  //nothing remains
+                {
+                    _position += received;
+                    return received;
+                }
+            }
+
+            //small request, we want to load more data than requested and store them in buffer:
+            if (count < this.optimalReadRequestSize) 
+            {
+                this.ReadDataToBufferSync(position);
+                hitLength = this.getDataFromBuffer(position, count, dst, dstOffset, ref isEOF);
+
+                _position = position + received + hitLength;
+                return received + hitLength;
+            }
+
+
+            //request with big buffers remains:
+
+            List<EventWaitHandle> waits = new List<EventWaitHandle>();
+
+            int readCount = count;
+            int winOffset = 0;
+            int receivedTotal = 0;
+#if DEBUG
+            DateTime startTime = DateTime.Now;
+#endif
+            while (readCount > 0)
+            {
+                int winSize = readCount > this.optimalReadRequestSize ? this.optimalReadRequestSize : readCount;
+
+                EventWaitHandle wait = new AutoResetEvent(false);
+                wait.Reset();
+                waits.Add(wait);
+
+                this.ReadAsync(
+                            position + winOffset, winSize,
+                            dst, dstOffset + winOffset,
+                            receivedStatus => {
+                                Interlocked.Add(ref receivedTotal, receivedStatus);
+                                wait.Set();
+                            }
+                );
+
+                winOffset += winSize;
+                readCount -= winSize;
+            }
+
+            if (!WaitHandle.WaitAll(waits.ToArray(), 20000))
+            {
+                throw new SshOperationTimeoutException("Timeout on wait");
+            }
+#if DEBUG
+            int rrTime = (DateTime.Now - startTime).Milliseconds;
+            Console.WriteLine(rrTime+" with "+waits.Count.ToString());
+#endif
+            _position = _position + received + receivedTotal;
+            return received + receivedTotal;
         }
 
 
@@ -209,38 +388,7 @@ namespace Sshfs
         {
             // Set up for the read operation.
             SetupRead();
-
-            List<EventWaitHandle> waits = new List<EventWaitHandle>();
-            int READ_BUFFER_SIZE = checked((int)this._session.CalculateOptimalReadLength(65536-13));
-
-            int readCount = bufferCount;
-            int winOffset = 0;
-            int receivedTotal = 0;
-                 
-            while (readCount > 0)
-            {
-                int winSize = readCount > READ_BUFFER_SIZE ? READ_BUFFER_SIZE : readCount;
-
-                EventWaitHandle wait = new AutoResetEvent(false);
-                wait.Reset();
-                waits.Add(wait);
-
-                this.ReadToBufferAsync(
-                            _position + winOffset, winSize, 
-                            buffer, bufferOffset + winOffset, 
-                            wait, received => { Interlocked.Add(ref receivedTotal, received); }
-                );
-
-                winOffset += winSize;
-                readCount -= winSize;
-            }
-
-            if (!WaitHandle.WaitAll(waits.ToArray(), 20000)) { 
-                throw new SshOperationTimeoutException("Timeout on wait");
-            }
-            
-            _position = _position + receivedTotal;
-            return receivedTotal;
+            return this.getDataAt(this._position, bufferCount, buffer, bufferOffset);
         }
 
 
