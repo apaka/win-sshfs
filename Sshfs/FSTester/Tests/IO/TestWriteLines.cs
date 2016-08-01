@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace FSTester
+namespace FSTester.Tests.IO
 {
     public class TestWriteLines : Test
     { 
@@ -18,7 +18,7 @@ namespace FSTester
                 return false;
             }
 
-            string tmp = Guid.NewGuid().ToString() + ".tmp";
+            string tmp = this.getUniqueTempBasename();
 
             FileStream f = File.Open(this.workingPath + " \\ " + tmp, FileMode.OpenOrCreate);
             string s = "ABCD" + "\n";

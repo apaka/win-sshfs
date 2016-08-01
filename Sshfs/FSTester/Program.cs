@@ -22,11 +22,12 @@ namespace FSTester
                 string workingPath = args[0];
 
                 Collection<Test> tests = new Collection<Test>();
-                tests.Add(new TestWriteLines(workingPath));
+                tests.Add(new Tests.IO.TestWriteLines(workingPath));
+                tests.Add(new Tests.Others.BackupAndShared(workingPath));
 
                 foreach (Test test in tests)
                 {
-                    Console.Write("Test X: ");
+                    Console.Write("Test " + test.ToString() + ": ");
                     if (test.Go())
                     {
                         Console.WriteLine("Success");

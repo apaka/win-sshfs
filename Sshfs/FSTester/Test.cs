@@ -40,5 +40,10 @@ namespace FSTester
         {
             Console.WriteLine( line );
         }
+
+        protected string getUniqueTempBasename( string suffix = "tmp" )
+        {
+            return Guid.NewGuid().ToString() + "." + suffix;
+        }
     }
 }
