@@ -1,0 +1,3 @@
+[submodule "SSH.NET"]
+	path = SSH.NET
+	url = git@github.com:Foreveryone-cz/SSH.NET-for-winsshfs.git
