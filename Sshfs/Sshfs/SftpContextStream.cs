@@ -47,7 +47,7 @@ namespace Sshfs
 
         private readonly byte[] _writeBuffer;
 
-        private readonly SftpSession _session;
+        private readonly ISftpSession _session;
         private SftpFileAttributes _attributes;
         private byte[] _handle;
 
@@ -55,7 +55,7 @@ namespace Sshfs
         private int _writeBufferPosition;
         private long _position;
 
-        internal SftpContextStream(SftpSession session, string path, FileMode mode, FileAccess access,
+        internal SftpContextStream(ISftpSession session, string path, FileMode mode, FileAccess access,
                                    SftpFileAttributes attributes)
         {
             Flags flags = Flags.None;
@@ -456,7 +456,7 @@ namespace Sshfs
                     {
                         int chunkcount = remainingcount <= WRITE_BUFFER_SIZE ? remainingcount : WRITE_BUFFER_SIZE;
                         Buffer.BlockCopy(buffer, offset+suboffset, _writeBuffer, _writeBufferPosition/*always zero*/, chunkcount);
-                        _session.RequestWrite(_handle, (ulong)(_position+suboffset), _writeBuffer, null, null);
+                        _session.RequestWrite(_handle, (ulong)(_position+suboffset), _writeBuffer, chunkcount, null, null);
                         remainingcount -= chunkcount;
                         suboffset += chunkcount;
                     }
@@ -483,7 +483,7 @@ namespace Sshfs
             if (_writeBufferPosition == WRITE_BUFFER_SIZE)
             {
                 
-                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer, null,null);
+                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer, _writeBufferPosition, null,null);
                 
 
                 _writeBufferPosition = 0;
@@ -521,7 +521,7 @@ namespace Sshfs
 
 
                
-                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data, null,null);
+                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data, _writeBufferPosition, null, null);
                 
 
                 _writeBufferPosition = 0;

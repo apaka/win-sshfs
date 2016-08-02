@@ -17,3 +17,4 @@ TestResults
 /Sshfs/.nuget
 /Sshfs/Packages.dgml
 /Sshfs/packages
+*.prev

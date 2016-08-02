@@ -128,7 +128,7 @@ namespace Sshfs
                 KeepAliveInterval = 1;
             }
 
-            ConnectionInfo info;
+            ConnectionInfo info = null;
             switch (ConnectionType)
             {
                 case ConnectionType.Pageant:
