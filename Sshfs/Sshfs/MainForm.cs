@@ -829,5 +829,57 @@ namespace Sshfs
             buttonVFSupdate();
         }
 
+        private void contextMenu_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            if (mountMenuItem.Selected && (e.KeyCode == Keys.Right || e.KeyCode == Keys.Enter))
+            {
+                mountMenuItem.ShowDropDown();
+            }
+            else
+            {
+                mountMenuItem.HideDropDown();
+            }
+            if (unmountMenuItem.Selected && (e.KeyCode == Keys.Right || e.KeyCode == Keys.Enter))
+            {
+                unmountMenuItem.ShowDropDown();
+            }
+            else
+            {
+                unmountMenuItem.HideDropDown();
+            }
+        }
+
+        private void mountMenuItem_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Right:
+                    contextMenu.AutoClose = false;
+                    mountMenuItem.DropDown.AutoClose = false;
+                    break;
+                default:
+                    contextMenu.AutoClose = true;
+                    mountMenuItem.DropDown.AutoClose = true;
+                    break;
+
+            }
+        }
+
+        private void unmountMenuItem_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Right:
+                    contextMenu.AutoClose = false;
+                    unmountMenuItem.DropDown.AutoClose = false;
+                    break;
+                default:
+                    contextMenu.AutoClose = true;
+                    unmountMenuItem.DropDown.AutoClose = true;
+                    break;
+
+            }
+        }
+
     }
 }

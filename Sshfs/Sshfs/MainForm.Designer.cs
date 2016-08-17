@@ -745,6 +745,7 @@
             this.contextMenu.ShowImageMargin = false;
             this.contextMenu.Size = new System.Drawing.Size(135, 148);
             this.contextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenu_Opening);
+            this.contextMenu.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.contextMenu_PreviewKeyDown);
             // 
             // showMenuItem
             // 
@@ -768,6 +769,7 @@
             this.mountMenuItem.Text = "Mount";
             this.mountMenuItem.DropDownClosed += new System.EventHandler(this.mountMenuItem_DropDownClosed);
             this.mountMenuItem.DropDownOpening += new System.EventHandler(this.mountMenuItem_DropDownOpening);
+            this.mountMenuItem.DropDown.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.mountMenuItem_PreviewKeyDown);
             // 
             // unmountMenuItem
             // 
@@ -777,6 +779,7 @@
             this.unmountMenuItem.Text = "Unmount";
             this.unmountMenuItem.DropDownClosed += new System.EventHandler(this.unmountMenuItem_DropDownClosed);
             this.unmountMenuItem.DropDownOpening += new System.EventHandler(this.unmountMenuItem_DropDownOpening);
+            this.unmountMenuItem.DropDown.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.unmountMenuItem_PreviewKeyDown);
             // 
             // toolStripSeparator2
             // 
