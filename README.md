@@ -4,6 +4,8 @@ WinSshFS 4every1 edition
 I decided to share my clone of win-sshfs based on <https://github.com/apaka/win-sshfs>  
 I did some improvments for my needs. Current devel branch version seems to be very stable.
 
+Download [latest release here](https://github.com/Foreveryone-cz/win-sshfs/releases). 
+
 ![img](https://cloud.githubusercontent.com/assets/1085397/10747956/3f684d3a-7c18-11e5-8ca6-0f37a60426e4.jpg "UI")
 
 There are several changes, main differences:
