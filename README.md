@@ -11,6 +11,7 @@ Download [latest release here](https://github.com/Foreveryone-cz/win-sshfs/relea
 There are several changes, main differences:
 
 *   Windows 10 Support
+*   Support for Android hosts (tested with CyanogenMod 11 [Android 4.4], requires busybox to be installed)
 *   current Renci SSH (2014.4.6beta)
 *   solved few bugs like payload, 2 hosts and others
 *   Puttyant (Pageant) support
