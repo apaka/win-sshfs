@@ -456,7 +456,7 @@ namespace Sshfs
                     {
                         int chunkcount = remainingcount <= WRITE_BUFFER_SIZE ? remainingcount : WRITE_BUFFER_SIZE;
                         Buffer.BlockCopy(buffer, offset+suboffset, _writeBuffer, _writeBufferPosition/*always zero*/, chunkcount);
-                        _session.RequestWrite(_handle, (ulong)(_position+suboffset), _writeBuffer, chunkcount, null, null);
+                        _session.RequestWrite(_handle, (ulong)(_position+suboffset), _writeBuffer, chunkcount, 0, null, null);
                         remainingcount -= chunkcount;
                         suboffset += chunkcount;
                     }
@@ -483,7 +483,7 @@ namespace Sshfs
             if (_writeBufferPosition == WRITE_BUFFER_SIZE)
             {
                 
-                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer, _writeBufferPosition, null,null);
+                    _session.RequestWrite(_handle, (ulong) (_position - WRITE_BUFFER_SIZE), _writeBuffer, _writeBufferPosition, 0, null,null);
                 
 
                 _writeBufferPosition = 0;
@@ -521,7 +521,7 @@ namespace Sshfs
 
 
                
-                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data, _writeBufferPosition, null, null);
+                    _session.RequestWrite(_handle, (ulong) (_position - _writeBufferPosition), data, _writeBufferPosition, 0, null, null);
                 
 
                 _writeBufferPosition = 0;
