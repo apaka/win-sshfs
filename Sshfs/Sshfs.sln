@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSTester", "FSTester\FSTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Renci.SshNet", "..\SSH.NET\src\Renci.SshNet\Renci.SshNet.csproj", "{2F5F8C90-0BD1-424F-997C-7BC6280919D1}"
 EndProject
+Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "WinSshFs Installer", "WinSSHFS-setup\WinSshFs Installer.wixproj", "{9552311D-F6B4-43F6-8859-7C3B41A4311D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -122,6 +124,34 @@ Global
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.ReleaseFW2|x64.Build.0 = Release|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.ReleaseFW2|x86.ActiveCfg = Release|Any CPU
 		{2F5F8C90-0BD1-424F-997C-7BC6280919D1}.ReleaseFW2|x86.Build.0 = Release|Any CPU
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|x64.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|x86.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Debug|x86.Build.0 = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|Any CPU.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|Any CPU.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|Mixed Platforms.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|Mixed Platforms.Build.0 = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|x64.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|x64.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|x86.ActiveCfg = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.DebugNoTimeout|x86.Build.0 = Debug|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|Any CPU.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|Mixed Platforms.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|x64.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|x86.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.Release|x86.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|Any CPU.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|Any CPU.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|Mixed Platforms.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|Mixed Platforms.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|x64.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|x64.Build.0 = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|x86.ActiveCfg = Release|x86
+		{9552311D-F6B4-43F6-8859-7C3B41A4311D}.ReleaseFW2|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

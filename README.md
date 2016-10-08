@@ -1,27 +1,27 @@
-WinSshFS 4every1 edition
+[![Build status](https://ci.appveyor.com/api/projects/status/bhqp9ib4bkv951w4?svg=true)](https://ci.appveyor.com/project/dimov-cz/win-sshfs)
+|
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=winsshfs%40gmail%2ecom&lc=GB&item_name=WinSSHFS%20support%20donation&item_number=WinSSHFS&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted)
+[![Donate](https://img.shields.io/badge/donate-bitcoin-green.svg)](bitcoin:129dWbvuc11dy4PRBM8e2aEcL2bAunYokG?&message=WinSSHFS donation&label=WinSSHFS)
+|
+[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/Foreveryone-cz/win-sshfs.svg)](http://isitmaintained.com/project/Foreveryone-cz/win-sshfs "Average time to resolve an issue")
+[![Percentage of issues still open](http://isitmaintained.com/badge/open/Foreveryone-cz/win-sshfs.svg)](http://isitmaintained.com/project/Foreveryone-cz/win-sshfs "Percentage of issues still open")
+WinSshFS Foreveryone
 ========================
- 
-I decided to share my clone of win-sshfs based on <https://github.com/apaka/win-sshfs>  
-I did some improvments for my needs. Current devel branch version seems to be very stable.
 
-Download [latest release here](https://github.com/Foreveryone-cz/win-sshfs/releases). 
+Download [latest release here](https://github.com/Foreveryone-cz/win-sshfs/releases).
 
-![img](https://cloud.githubusercontent.com/assets/1085397/10747956/3f684d3a-7c18-11e5-8ca6-0f37a60426e4.jpg "UI")
-
-There are several changes, main differences:
-
+Main features:
 *   Windows 10 Support
-*   Support for Android hosts (tested with CyanogenMod 11 [Android 4.4], requires busybox to be installed)
-*   current Renci SSH (2014.4.6beta)
-*   solved few bugs like payload, 2 hosts and others
 *   Puttyant (Pageant) support
-*   settings files location is in fixed place (%localappdata%\WinSshFS)
-*   "spooldrive" - all remote hosts can by mount as mountpoint dir in one virtual drive
+*   Support for Android hosts (tested with CyanogenMod 11 [Android 4.4], requires busybox to be installed)
+*   Spooldrive - remote hosts can by mounted as directories on same virtual drive
 *   archive flag of file in windows represents and controls permission for group:
     *   ON => group have same rights as owner
     *   OFF => same rights as others)
 *   Ability to use Proxy for connections
 *   Send Keepalive packets. (Not configurable, each 60sec hardcoded)
-*   I use different versioning: 1.5.12.5 = version.subversion.release.build
 
-And probably others , see logs for details.
+![img](https://cloud.githubusercontent.com/assets/1085397/10747956/3f684d3a-7c18-11e5-8ca6-0f37a60426e4.jpg "UI")
+
+Development version:
+ [![Build status](https://ci.appveyor.com/api/projects/status/bhqp9ib4bkv951w4/branch/devel?svg=true)](https://ci.appveyor.com/project/dimov-cz/win-sshfs/branch/devel)
