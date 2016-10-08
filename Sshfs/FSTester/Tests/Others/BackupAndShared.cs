@@ -55,10 +55,9 @@ namespace FSTester.Tests.Others
             catch(Exception ex)
             {
                 this.lastError = ex.Message;
-                return false;
             }
 
-            return true;
+            return false;
         }
     } 
 }

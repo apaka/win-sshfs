@@ -335,7 +335,7 @@ namespace Sshfs
                             return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY    
                         }
                     }
-                    catch (SftpPathNotFoundException e)
+                    catch (SftpPathNotFoundException)
                     {
                     }
                     return status;
@@ -366,7 +366,7 @@ namespace Sshfs
                 {
                     sftpFileAttributes = GetAttributes(path);
                 }
-                catch(SftpPathNotFoundException e)
+                catch(SftpPathNotFoundException)
                 {
                     Debug.WriteLine("File not found");
                     sftpFileAttributes = null;
@@ -436,7 +436,7 @@ namespace Sshfs
                     SetLastError(183); //ERROR_ALREADY_EXISTS
                 }
             }
-            catch (SshException ex) // Don't have access rights or try to read broken symlink
+            catch (SshException) // Don't have access rights or try to read broken symlink
             {
                 var ownerpath = path.Substring(0, path.LastIndexOf('/'));
                 var sftpPathAttributes = CacheGetAttr(ownerpath);
@@ -448,7 +448,7 @@ namespace Sshfs
                     {
                         sftpFileAttributes = GetAttributes(ownerpath);
                     }
-                    catch (SftpPathNotFoundException e)
+                    catch (SftpPathNotFoundException)
                     {
                         Debug.WriteLine("File not found");
                         sftpFileAttributes = null;
@@ -725,7 +725,7 @@ namespace Sshfs
                     {
                         sftpFileAttributes = GetAttributes(path);
                     }
-                    catch (SftpPathNotFoundException e)
+                    catch (SftpPathNotFoundException)
                     {
                         Debug.WriteLine("File not found");
                         sftpFileAttributes = null;
@@ -743,7 +743,7 @@ namespace Sshfs
                     {
                         sftpFileAttributes = GetAttributes(path);
                     }
-                    catch (SftpPathNotFoundException e)
+                    catch (SftpPathNotFoundException)
                     {
                         Debug.WriteLine("File not found");
                         sftpFileAttributes = null;
@@ -961,7 +961,7 @@ namespace Sshfs
             {
                 currentattr = GetAttributes(path);
             }
-            catch (SftpPathNotFoundException e)
+            catch (SftpPathNotFoundException)
             {
                 Debug.WriteLine("File not found");
                 currentattr = null;
@@ -997,7 +997,7 @@ namespace Sshfs
                 {
                     SetAttributes(GetUnixPath(fileName), currentattr);
                 }
-                catch(SftpPermissionDeniedException e)
+                catch(SftpPermissionDeniedException)
                 {
                     return NtStatus.AccessDenied;
                 }
@@ -1029,7 +1029,7 @@ namespace Sshfs
             {
                 tempAttributes = GetAttributes(GetUnixPath(fileName));
             }
-            catch (SftpPathNotFoundException e)
+            catch (SftpPathNotFoundException)
             {
                 Debug.WriteLine("File not found");
                 tempAttributes = null;
@@ -1060,7 +1060,7 @@ namespace Sshfs
                 {
                     sftpFileAttributes = GetAttributes(parentPath);
                 }
-                catch (SftpPathNotFoundException e)
+                catch (SftpPathNotFoundException)
                 {
                     Debug.WriteLine("File not found");
                     sftpFileAttributes = null;
@@ -1100,7 +1100,7 @@ namespace Sshfs
                 {
                     sftpFileAttributes = GetAttributes(parentPath);
                 }
-                catch (SftpPathNotFoundException e)
+                catch (SftpPathNotFoundException)
                 {
                     Debug.WriteLine("File not found");
                     sftpFileAttributes = null;
@@ -1163,7 +1163,7 @@ namespace Sshfs
             {
                 sftpFileAttributes = GetAttributes(newpath);
             }
-            catch (SftpPathNotFoundException e)
+            catch (SftpPathNotFoundException)
             {
                 Debug.WriteLine("File not found");
                 sftpFileAttributes = null;
