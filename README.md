@@ -1,7 +1,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/bhqp9ib4bkv951w4?svg=true)](https://ci.appveyor.com/project/dimov-cz/win-sshfs)
 |
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=winsshfs%40gmail%2ecom&lc=GB&item_name=WinSSHFS%20support%20donation&item_number=WinSSHFS&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted)
-[![Donate](https://img.shields.io/badge/donate-bitcoin-green.svg)](bitcoin:129dWbvuc11dy4PRBM8e2aEcL2bAunYokG?&message=WinSSHFS donation&label=WinSSHFS)
+[![Donate](https://img.shields.io/badge/donate-bitcoin-green.svg)](https://foreveryone-cz.github.io/WinSshFS/donate-bitcoin/)
 |
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/Foreveryone-cz/win-sshfs.svg)](http://isitmaintained.com/project/Foreveryone-cz/win-sshfs "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/Foreveryone-cz/win-sshfs.svg)](http://isitmaintained.com/project/Foreveryone-cz/win-sshfs "Percentage of issues still open")
