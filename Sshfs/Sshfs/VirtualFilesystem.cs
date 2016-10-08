@@ -401,7 +401,7 @@ namespace Sshfs
             fileInfo = new FileInformation
             {
                 Attributes =
-                    FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.Offline | FileAttributes.System,
+                    FileAttributes.NotContentIndexed | FileAttributes.Directory,
                 FileName = Path.GetFileName(fileName), //String.Empty,
                 // GetInfo info doesn't use it maybe for sorting .
                 CreationTime = DateTime.Now,
@@ -495,7 +495,7 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.Offline | FileAttributes.System;
+                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;
@@ -616,10 +616,10 @@ namespace Sshfs
                 }
             }
 
+            long terabyte = (long)1024 * 1024 * 1024 * 1024;
 
-            free = 0;
-            total = 1024;
-            used = 4;
+            total = 10*terabyte;//1TB for Explorer to see space
+            used = terabyte;
             free = total - used;
 
             return NtStatus.Success;
