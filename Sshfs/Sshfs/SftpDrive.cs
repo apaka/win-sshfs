@@ -171,6 +171,7 @@ namespace Sshfs
             }
 
             _connection = Settings.Default.UseNetworkDrive ? String.Format("\\\\{0}\\{1}\\{2}", info.Host, Root, info.Username) : Name;
+            info.Timeout = new TimeSpan(0,0,5);
 
             _filesystem = new SftpFilesystem(info, Root,_connection,Settings.Default.UseOfflineAttribute,false, (int) Settings.Default.AttributeCacheTimeout,  (int) Settings.Default.DirContentCacheTimeout);
             Debug.WriteLine("Connecting...");

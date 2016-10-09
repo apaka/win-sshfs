@@ -401,7 +401,7 @@ namespace Sshfs
             fileInfo = new FileInformation
             {
                 Attributes =
-                    FileAttributes.NotContentIndexed | FileAttributes.Directory,
+                    FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.ReparsePoint | FileAttributes.Offline,
                 FileName = Path.GetFileName(fileName), //String.Empty,
                 // GetInfo info doesn't use it maybe for sorting .
                 CreationTime = DateTime.Now,
@@ -495,7 +495,7 @@ namespace Sshfs
                 {
                     FileInformation fi = new FileInformation();
                     fi.FileName = mp;
-                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory;
+                    fi.Attributes = FileAttributes.NotContentIndexed | FileAttributes.Directory | FileAttributes.ReparsePoint | FileAttributes.Offline;
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;

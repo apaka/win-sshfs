@@ -309,6 +309,28 @@ namespace Sshfs
                     && (attributes.GroupCanExecute == attributes.OwnerCanExecute);
         }
 
+        override public SftpFileAttributes GetAttributes(string path)
+        {
+            SftpFileAttributes attributes = base.GetAttributes(path);
+            this.ExtendSFtpFileAttributes(path, attributes);
+            return attributes;
+        }
+
+        private SftpFileAttributes ExtendSFtpFileAttributes(string path, SftpFileAttributes attributes)
+        {
+            if (attributes.IsSymbolicLink)
+            {
+                SftpFile symTarget = this.GetSymbolicLinkTarget(path);
+                attributes.IsSymbolicLinkToDirectory = symTarget.Attributes.IsDirectory;
+                attributes.SymbolicLinkTarget = symTarget.FullName;
+                if (!attributes.IsSymbolicLinkToDirectory)
+                {
+                    attributes.Size = symTarget.Attributes.Size;
+                }
+            }
+            return attributes;
+        }
+
         #endregion
 
         #region DokanOperations
@@ -320,31 +342,49 @@ namespace Sshfs
             //Split into four methods?
             LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1} IsDirectory:{2}", mode, options, info.IsDirectory);
 
+            if (fileName.Contains("symlinkfile"))
+            {
+            }
+
             if (info.IsDirectory)
             {
-                if (mode == FileMode.Open)
-                {
-                    NtStatus status = OpenDirectory(fileName, info);
-                    
-                    try
-                    {
-                        if (status == NtStatus.ObjectNameNotFound)
-                        {
-                            GetAttributes(fileName);
-                            //no expception -> its file
-                            return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY    
-                        }
-                    }
-                    catch (SftpPathNotFoundException)
-                    {
-                    }
-                    return status;
-
+                SftpFileAttributes attributesDir = null;
+                try {
+                     attributesDir = this.GetAttributes(this.GetUnixPath(fileName));//todo load from cache first
                 }
-                if (mode == FileMode.CreateNew)
-                    return CreateDirectory(fileName, info);
+                catch (SftpPathNotFoundException){}
+                if (attributesDir == null || attributesDir.IsDirectory || attributesDir.IsSymbolicLinkToDirectory)
+                {
 
-                return NtStatus.NotImplemented;
+                    if (mode == FileMode.Open)
+                    {
+                        NtStatus status = OpenDirectory(fileName, info);
+
+                        try
+                        {
+                            if (status == NtStatus.ObjectNameNotFound)
+                            {
+                                GetAttributes(fileName);
+                                //no expception -> its file
+                                return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY    
+                            }
+                        }
+                        catch (SftpPathNotFoundException)
+                        {
+                        }
+                        return status;
+
+                    }
+                    if (mode == FileMode.CreateNew)
+                        return CreateDirectory(fileName, info);
+
+                    return NtStatus.NotImplemented;
+                }
+                else
+                {
+                    //its symbolic link behaving like directory?
+                    return NtStatus.NotImplemented;
+                }
             }
 
             if (fileName.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
@@ -388,7 +428,7 @@ namespace Sshfs
                         if (((uint)access & 0xe0000027) == 0 || sftpFileAttributes.IsDirectory)
                         //check if only wants to read attributes,security info or open directory
                         {
-                            info.IsDirectory = sftpFileAttributes.IsDirectory;
+                            info.IsDirectory = sftpFileAttributes.IsDirectory || sftpFileAttributes.IsSymbolicLinkToDirectory;
                             
                             if (options.HasFlag(FileOptions.DeleteOnClose))
                             {
@@ -474,9 +514,6 @@ namespace Sshfs
         {
             LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context,"");
 
-
-
-
             string path = GetUnixPath(fileName);
             var sftpFileAttributes = CacheGetAttr(path);
 
@@ -499,7 +536,7 @@ namespace Sshfs
 
             if (sftpFileAttributes != null)
             {
-                if (!sftpFileAttributes.IsDirectory)
+                if (!sftpFileAttributes.IsDirectory && !sftpFileAttributes.IsSymbolicLinkToDirectory)
                 {
                     return (NtStatus)0xC0000103L; //STATUS_NOT_A_DIRECTORY
                 }
@@ -553,7 +590,7 @@ namespace Sshfs
         {
             LogFSActionInit("Cleanup", fileName, (SftpContext)info.Context, "");
 
-            bool deleteOnCloseWorkAround = false;
+            bool deleteOnCloseWorkAround = false;//TODO not used probably, can be removed
 
             if (info.Context != null)
             {
@@ -567,16 +604,33 @@ namespace Sshfs
             if (info.DeleteOnClose || deleteOnCloseWorkAround)
             {
                 string path = GetUnixPath(fileName);
-                if (info.IsDirectory)
+                if (info.IsDirectory) //can be also symlink file!
                 {
                     try
                     {
-                        DeleteDirectory(path);
+                        SftpFileAttributes attributes = this.CacheGetAttr(path);
+                        if (attributes == null)
+                        {
+                            attributes = this.GetAttributes(path);
+                        }
+                        if (attributes == null)
+                        {
+                            //shoud never happen
+                            throw new SftpPathNotFoundException();
+                        }
+                        if (attributes.IsSymbolicLink) //symlink file or dir, can be both
+                        {
+                            DeleteFile(path);
+                        }
+                        else
+                        {
+                            DeleteDirectory(path);
+                        }
+
                     }
-                    catch (SftpPathNotFoundException) //in case we are dealing with simbolic link
+                    catch (Exception) //in case we are dealing with simbolic link
                     {
                         //This may cause an error
-                        DeleteFile(path);
                     }
                 }
                 else
@@ -770,7 +824,7 @@ namespace Sshfs
                                LastWriteTime = sftpFileAttributes.LastWriteTime,
                                Length = sftpFileAttributes.Size
                            };
-            if (sftpFileAttributes.IsDirectory)
+            if (sftpFileAttributes.IsDirectory || sftpFileAttributes.IsSymbolicLinkToDirectory)
             {
                 fileInfo.Attributes |= FileAttributes.Directory;
                 fileInfo.Length = 0; // Windows directories use length of 0 
@@ -830,7 +884,7 @@ namespace Sshfs
             (files as List<FileInformation>).AddRange(sftpFiles.Select(
                 file =>
                     {
-                        var sftpFileAttributes = file.Attributes;
+                        var sftpFileAttributes = this.ExtendSFtpFileAttributes(file.FullName, file.Attributes);
 
                         var fileInformation = new FileInformation
                                                     {
@@ -863,19 +917,8 @@ namespace Sshfs
                                                     };
                         if (sftpFileAttributes.IsSymbolicLink)
                         {
-                            try
-                            {
-                                SftpFile symTarget = GetSymbolicLinkTarget(file.FullName);
-                                
-                                if (symTarget.Attributes.IsDirectory)
-                                {
-                                    fileInformation.Attributes |= FileAttributes.Directory;
-                                }
-                            } catch (Exception)
-                            {
-                                Debug.WriteLine("Error getting the symlink target.");
-                            }
-                            //link?
+                            /* Also files must be marked as dir to reparse work on files */
+                            fileInformation.Attributes |= FileAttributes.ReparsePoint | FileAttributes.Directory;
                         }
 
                         if (sftpFileAttributes.IsSocket)
@@ -883,7 +926,7 @@ namespace Sshfs
                             fileInformation.Attributes
                                 |=
                                 FileAttributes.NoScrubData | FileAttributes.System | FileAttributes.Device;
-                        }else if (sftpFileAttributes.IsDirectory)
+                        }else if (sftpFileAttributes.IsDirectory || sftpFileAttributes.IsSymbolicLinkToDirectory)
                         {
                             fileInformation.Attributes
                                 |=
@@ -928,8 +971,8 @@ namespace Sshfs
 
             foreach (
                 var file in
-                    sftpFiles.Where(
-                        pair => !pair.IsSymbolicLink))
+                    sftpFiles/*.Where(
+                        pair => !pair.IsSymbolicLink)*/)
             {
                 CacheAddAttr(GetUnixPath(String.Format("{0}\\{1}", fileName , file.Name)), file.Attributes,
                             DateTimeOffset.UtcNow.AddSeconds(timeout));
@@ -1117,38 +1160,56 @@ namespace Sshfs
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Access denied");
                 return NtStatus.AccessDenied;
             }
+
+            var fileNameUnix = GetUnixPath(fileName);
+            sftpFileAttributes = this.CacheGetAttr(fileNameUnix);
+            if (sftpFileAttributes == null)
+            {
+                try
+                {
+                    sftpFileAttributes = GetAttributes(fileNameUnix);
+                }
+                catch (SftpPathNotFoundException)
+                {
+                    return NtStatus.NoSuchFile;//not sure if can happen and what to return
+                }
+            }
+            if (sftpFileAttributes.IsSymbolicLink)
+            {
+                return NtStatus.Success;
+            }
+
+            //test content:
             var dircache = CacheGetDir(GetUnixPath(fileName));
             if (dircache != null)
             {
-                //Log("DelateCacheHit:{0}", fileName);
                 bool test = dircache.Item2.Count == 0 || dircache.Item2.All(i => i.FileName == "." || i.FileName == "..");
-                
-                if (test)
-                    LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
-                else
+                if (!test)
+                {
                     LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
-
-                return test ? NtStatus.Success : NtStatus.DirectoryNotEmpty;
+                    return NtStatus.DirectoryNotEmpty;
+                }
+                LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
+                return NtStatus.Success;
             }
 
+            //no cache hit, test live, maybe we will get why:
             var dir = ListDirectory(GetUnixPath(fileName)).ToList();
-
             if (dir == null)
             {
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Open failed, access denied?");
                 return NtStatus.AccessDenied;
             }
-            
-            // usualy there are two entries . and ..
 
             bool test2 = dir.Count == 0 || dir.All(i => i.Name == "." || i.Name == "..");
-            
-            if (test2)
-                LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
-            else
+            if (!test2)
+            {
                 LogFSActionError("DeleteDir", fileName, (SftpContext)info.Context, "Dir not empty");
+                return NtStatus.DirectoryNotEmpty;
+            }
 
-            return test2 ? NtStatus.Success : NtStatus.DirectoryNotEmpty;
+            LogFSActionSuccess("DeleteDir", fileName, (SftpContext)info.Context, "");
+            return NtStatus.Success;
         }
 
         NtStatus IDokanOperations.MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
@@ -1194,7 +1255,7 @@ namespace Sshfs
 
                 info.Context = null;
 
-                if (sftpFileAttributes.IsDirectory)
+                if (sftpFileAttributes.IsDirectory || sftpFileAttributes.IsSymbolicLinkToDirectory)
                 {
                     return NtStatus.AccessDenied;
                 }
