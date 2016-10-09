@@ -775,10 +775,6 @@ namespace Sshfs
                 }
                 else
                 {
-                    if (fileName == "\\public\\1\\test\\.git\\config.lock")
-                    {
-                        Log("Data: {0}", Encoding.ASCII.GetString(buffer));
-                    }
 
                     SftpContextStream stream = (info.Context as SftpContext).Stream;
                     lock (stream)
