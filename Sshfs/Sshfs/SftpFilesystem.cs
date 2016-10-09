@@ -320,7 +320,16 @@ namespace Sshfs
         {
             if (attributes.IsSymbolicLink)
             {
-                SftpFile symTarget = this.GetSymbolicLinkTarget(path);
+                SftpFile symTarget;
+                try {
+                    symTarget = this.GetSymbolicLinkTarget(path);
+                }
+                catch (SftpPathNotFoundException)
+                {
+                    //invalid symlink
+                    attributes.SymbolicLinkTarget = null;
+                    return attributes;
+                }
                 attributes.IsSymbolicLinkToDirectory = symTarget.Attributes.IsDirectory;
                 attributes.SymbolicLinkTarget = symTarget.FullName;
                 if (!attributes.IsSymbolicLinkToDirectory)
@@ -857,6 +866,12 @@ namespace Sshfs
             LogFSActionSuccess("FileInfo", fileName, (SftpContext)info.Context, "Length:{0} Attrs:{1}", fileInfo.Length, fileInfo.Attributes);
 
             return NtStatus.Success;
+        }
+
+        NtStatus IDokanOperations.FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
+        {
+            files = null;
+            return NtStatus.NotImplemented;
         }
 
         NtStatus IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)

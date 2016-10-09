@@ -450,6 +450,12 @@ namespace Sshfs
 
         }
 
+        NtStatus IDokanOperations.FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
+        {
+            files = null;
+            return NtStatus.NotImplemented;
+        }
+
         NtStatus IDokanOperations.FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
             SftpDrive drive = this.GetDriveByMountPoint(fileName, out fileName);
@@ -499,6 +505,7 @@ namespace Sshfs
                     fi.CreationTime = DateTime.Now;
                     fi.LastWriteTime = DateTime.Now;
                     fi.LastAccessTime = DateTime.Now;
+
                     files.Add(fi);
                 }
             }
