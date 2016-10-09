@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="WinSshFS" Language="1033" Version="1.6.1.0" Manufacturer="WinSshFS" UpgradeCode="1e0bbf09-5c6f-4203-b674-5d51a13431b0">
+	<Product Id="*" Name="WinSshFS" Language="1033" Version="1.6.1.9" Manufacturer="WinSshFS" UpgradeCode="1e0bbf09-5c6f-4203-b674-5d51a13431b0">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
     <Media Id="1" Cabinet="WinSshFS.cab" EmbedCab="yes" />
     
 		<MajorUpgrade 
       DowngradeErrorMessage="A newer version of [ProductName] is already installed." 
-      AllowSameVersionUpgrades="yes"
+      AllowSameVersionUpgrades="no"
     />
 
 		<Feature Id="ProductFeature" Title="WinSshFS" Level="1">

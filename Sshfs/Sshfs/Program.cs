@@ -26,7 +26,14 @@ namespace Sshfs
             Debug.Listeners.Add(new DelimitedListTraceListener(Environment.CurrentDirectory+"\\last.log", "debug"));
             //Debug.Listeners.Add(Console.Out);
 #endif
-            SftpManagerApplication app = new SftpManagerApplication();
+#if DEBUG && DEBUGSHADOWCOPY
+            string shadowCopyDir = Environment.CurrentDirectory + "\\debug-shadow";
+            if (Directory.Exists(shadowCopyDir))
+            {
+                Directory.Delete(shadowCopyDir, true);
+            }
+#endif
+                SftpManagerApplication app = new SftpManagerApplication();
             app.Run(args);
         }
     }

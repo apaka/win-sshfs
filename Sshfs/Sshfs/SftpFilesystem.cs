@@ -716,15 +716,55 @@ namespace Sshfs
                 }
             }
             LogFSActionSuccess("ReadFile", fileName, (SftpContext)info.Context, "");
+#if DEBUG && DEBUGSHADOWCOPY
+            try {
+                string shadowCopyDir = Environment.CurrentDirectory + "\\debug-shadow";
+                string tmpFilePath = shadowCopyDir + "\\" + fileName.Replace("/", "\\");
+                FileStream fs = File.OpenRead(tmpFilePath);
+                byte[] localDataShadowBuffer = new byte[buffer.Length];
+                fs.Seek(offset, SeekOrigin.Begin);
+                fs.Close();
+                int readedShadow = fs.Read(localDataShadowBuffer, 0, localDataShadowBuffer.Length);
+                if (readedShadow != bytesRead)
+                {
+                    throw new Exception("Length of readed data from "+fileName+" differs");
+                }
+                if (!localDataShadowBuffer.SequenceEqual(buffer))
+                {
+                    throw new Exception("Data readed from " + fileName + " differs");
+                }
+            }
+            catch (Exception)
+            {
+
+            }
+#endif
             return NtStatus.Success;
         }
 
         NtStatus IDokanOperations.WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
                                               DokanFileInfo info)
         {
+            bytesWritten = 0;
             LogFSActionInit("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{0} Len:{1}", offset, buffer.Length);
-               
-               
+            try {
+#if DEBUG && DEBUGSHADOWCOPY
+                string shadowCopyDir = Environment.CurrentDirectory + "\\debug-shadow";
+                string tmpFilePath = shadowCopyDir + "\\" + fileName.Replace("/","\\");
+                if (!Directory.Exists(tmpFilePath))
+                {
+                    Directory.CreateDirectory(Directory.GetParent(tmpFilePath).FullName);
+                }
+                FileStream tmpFile = File.OpenWrite(tmpFilePath);
+                if (tmpFile.Length < offset + buffer.Length)
+                {
+                    tmpFile.SetLength(offset + buffer.Length);
+                }
+                tmpFile.Seek(offset, SeekOrigin.Begin);
+                tmpFile.Write(buffer, 0, buffer.Length);
+                tmpFile.Close();
+#endif
+
                 if (info.Context == null) // who would guess
                 {
                     SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Create);
@@ -750,10 +790,15 @@ namespace Sshfs
                     bytesWritten = buffer.Length;
                     // TODO there are still some apps that don't check disk free space before write
                 }
-              
-                LogFSActionSuccess("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
-                return NtStatus.Success;
             }
+            catch(Exception e)
+            {
+                return NtStatus.Error;
+            }
+              
+            LogFSActionSuccess("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
+            return NtStatus.Success;
+        }
         
 
         NtStatus IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
@@ -1232,6 +1277,7 @@ namespace Sshfs
             LogFSActionInit("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Replace:{1}",newName, replace);
 
 
+
             string oldpath = GetUnixPath(oldName);
             string newpath = GetUnixPath(newName);
             SftpFileAttributes sftpFileAttributes;
@@ -1255,6 +1301,27 @@ namespace Sshfs
                     CacheResetParent(oldpath);
                     CacheResetParent(newpath);
                     CacheReset(oldpath);
+#if DEBUG && DEBUGSHADOWCOPY
+                    try
+                    {
+                        string shadowCopyDir = Environment.CurrentDirectory + "\\debug-shadow";
+                        string tmpFilePath = shadowCopyDir + "\\" + oldName.Replace("/", "\\");
+                        string tmpFilePath2 = shadowCopyDir + "\\" + newName.Replace("/", "\\");
+                        Directory.CreateDirectory(Directory.GetParent(tmpFilePath2).FullName);
+                        if (Directory.Exists(tmpFilePath))
+                        {
+                            Directory.Move(tmpFilePath, tmpFilePath2);
+                        }
+                        else
+                        {
+                            File.Move(tmpFilePath, tmpFilePath2);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+#endif
                 }
                 catch (SftpPermissionDeniedException)
                 {
@@ -1295,8 +1362,29 @@ namespace Sshfs
                     CacheReset(oldpath);
                     CacheResetParent(oldpath);
                     CacheResetParent(newpath);
+#if DEBUG && DEBUGSHADOWCOPY
+                    try
+                    {
+                        string shadowCopyDir = Environment.CurrentDirectory + "\\debug-shadow";
+                        string tmpFilePath = shadowCopyDir + "\\" + oldName.Replace("/", "\\");
+                        string tmpFilePath2 = shadowCopyDir + "\\" + newName.Replace("/", "\\");
+                        Directory.CreateDirectory(Directory.GetParent(tmpFilePath2).FullName);
+                        if (Directory.Exists(tmpFilePath))
+                        {
+                            Directory.Move(tmpFilePath, tmpFilePath2);
+                        }
+                        else
+                        {
+                            File.Move(tmpFilePath, tmpFilePath2);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+#endif
                 }
-                
+
                 catch (SftpPermissionDeniedException)
                 {
                     LogFSActionError("MoveFile", oldName, (SftpContext)info.Context, "To:{0} Access denied", newName);
