@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ -f .gitcommit.user ]; then
+  ./version.hook.sh
+  git commit --ammend -C HEAD --no-verify
+  rm .gitcommit.user
+fi 

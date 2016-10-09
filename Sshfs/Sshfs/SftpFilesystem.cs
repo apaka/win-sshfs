@@ -791,7 +791,7 @@ namespace Sshfs
                     // TODO there are still some apps that don't check disk free space before write
                 }
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 return NtStatus.Error;
             }
