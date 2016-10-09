@@ -175,7 +175,8 @@ namespace Sshfs
                 {
                     if (drive.MountPoint.Length > 0)
                     {
-                        if (path.IndexOf(drive.MountPoint)==0)
+                        string mpWithPath = drive.MountPoint + "\\";
+                        if ( path == drive.MountPoint || path.IndexOf(mpWithPath) == 0 )
                         {
                             subfspath = path.Substring(drive.MountPoint.Length);
                             if (subfspath == "") 
