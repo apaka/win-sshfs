@@ -349,7 +349,11 @@ namespace Sshfs
                                                FileAttributes attributes, DokanFileInfo info)
         {
             //Split into four methods?
-            LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "Mode:{0} Options:{1} IsDirectory:{2}", mode, options, info.IsDirectory);
+#if DEBUG
+            //info.ProcessId
+            string processName = Process.GetProcessById(info.ProcessId).ProcessName;
+            LogFSActionInit("CreateFile", fileName, (SftpContext)info.Context, "ProcessName:{0} Mode:{1} Options:{2} IsDirectory:{3}", processName, mode, options, info.IsDirectory);
+#endif
 
             if (fileName.Contains("symlinkfile"))
             {
@@ -521,7 +525,10 @@ namespace Sshfs
 
         private NtStatus OpenDirectory(string fileName, DokanFileInfo info)
         {
-            LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context,"");
+#if DEBUG
+            string processName = Process.GetProcessById(info.ProcessId).ProcessName;
+            LogFSActionInit("OpenDir", fileName, (SftpContext)info.Context, "ProcessName:{0}", processName);
+#endif
 
             string path = GetUnixPath(fileName);
             var sftpFileAttributes = CacheGetAttr(path);
