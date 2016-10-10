@@ -1,7 +1,11 @@
 #!/bin/bash
 
-if [ -f .gitcommit.user ]; then
+if [ ! -f .gitcommit.amend.user ]; then
+  echo `date` > .gitcommit.amend.user
+
   ./version.hook.sh
-  git commit --ammend -C HEAD --no-verify
-  rm .gitcommit.user
+  git add Sshfs/Sshfs/Properties/AssemblyInfo.cs
+  git commit --amend -C HEAD --no-verify
+
+  rm .gitcommit.amend.user
 fi 

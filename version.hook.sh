@@ -5,7 +5,7 @@
 #This file needs to be place in the .git/hooks/ folder and only works when a git pull is
 #made which contains changes in the remote repo.
 
-PRODUCT="WinSshFS Foreveryone edition"
+PRODUCT="WinSshFS Foreveryone"
 
 #get the latest tag info. The 'always' flag will give you a shortened SHA1 if no tag exists.
 tag=$(git describe --tags --long)
