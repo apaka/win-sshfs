@@ -34,7 +34,7 @@
           <RemoveFolder Id="DesktopFolder" On="uninstall"/>
           <RegistryValue
               Root="HKCU"
-              Key="Software/WinSshFs"
+              Key="Software\WinSshFs"
               Name="installed"
               Type="integer"
               Value="1"
