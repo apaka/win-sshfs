@@ -6,3 +6,15 @@ obj
 _ReSharper*
 # mstest test results
 TestResults
+/sharpshell
+
+/Sshfs/Sshfs/publish
+/FreeTDS-0.91.98-x86.zip
+/README.zip
+/Dokan
+/bluescreenview
+/Sshfs/Sshfs/Properties/AssemblyInfo.cs.bak
+/Sshfs/.nuget
+/Sshfs/Packages.dgml
+/Sshfs/packages
+*.prev

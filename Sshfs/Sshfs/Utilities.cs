@@ -18,17 +18,18 @@ namespace Sshfs
 {
     internal static class Utilities
     {
-        private static readonly IsolatedStorageFile _userStoreForAssembly =
-            IsolatedStorageFile.GetUserStoreForAssembly();
-
+        private static readonly DirectoryInfo datadir = Directory.CreateDirectory(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\WinSshFS"
+            );
 
         public static void Load<T>(this List<T> list, string file) where T : ISerializable
         {
-            if (!_userStoreForAssembly.FileExists(file)) return;
+            string filepath = datadir.FullName+"\\"+file;
+            if (!File.Exists(filepath)) return;
 
             var xmlSerializer = new DataContractSerializer(typeof(IEnumerable<T>));
             using (
-                var stream = _userStoreForAssembly.OpenFile(file, FileMode.OpenOrCreate,
+                var stream = File.Open(filepath, FileMode.OpenOrCreate,
                                                             FileAccess.Read))
             {
                 list.Clear();
@@ -37,24 +38,81 @@ namespace Sshfs
             }
         }
 
-        public static void Presist<T>(this List<T> list, string file, bool delete = false) where T : ISerializable
+        public static T Load<T>(this T obj, string file) where T : ISerializable
+        {
+            string filepath = datadir.FullName + "\\" + file;
+            if (!File.Exists(filepath)) return default(T);
+
+            var xmlSerializer = new DataContractSerializer(typeof(IEnumerable<T>));
+            
+            using (
+                var stream = File.Open(filepath, FileMode.OpenOrCreate,
+                                                            FileAccess.Read))
+            {
+                return (T)xmlSerializer.ReadObject(stream);
+            }
+        }
+
+        private static void doBackups(string filepath)
+        {
+            if (File.Exists(filepath))
+            {
+                string bak = filepath + "~bak";
+                if (!File.Exists(bak))
+                {
+                    File.Move(filepath, bak);
+                }
+                else {
+                    File.Replace(filepath, bak, bak + "Prev", true);
+                }
+            }
+        }
+
+        public static void Persist<T>(this List<T> list, string file, bool delete = false) where T : ISerializable
 
         {
+            string filepath = datadir.FullName + "\\" + file;
             if (delete)
             {
-                _userStoreForAssembly.DeleteFile(file);
+                File.Delete(filepath);
             }
             else
             {
+                doBackups(filepath);
+
                 var xmlSerializer = new DataContractSerializer(typeof (List<T>));
                 using (
-                    var stream = _userStoreForAssembly.OpenFile(file, FileMode.Create,
+                    var stream = File.Open(filepath, FileMode.Create,
                                                                 FileAccess.Write))
                 {
                     xmlSerializer.WriteObject(stream, list);
                 }
             }
         }
+
+
+        public static void Persist<T>(this T obj, string file, bool delete = false) where T : ISerializable
+        {
+            string filepath = datadir.FullName + "\\" + file;
+            if (delete)
+            {
+                File.Delete(filepath);
+            }
+            else
+            {
+                doBackups(filepath);
+
+                var xmlSerializer = new DataContractSerializer(typeof(List<T>));
+                using (
+                    var stream = File.Open(filepath, FileMode.Create,
+                                                                FileAccess.Write))
+                {
+                    xmlSerializer.WriteObject(stream, obj);
+                    stream.Close();
+                }
+            }
+        }
+
 
         public static string ProtectString(string stringToProtect)
         {
@@ -66,16 +124,24 @@ namespace Sshfs
 
         public static string UnprotectString(string stringToUnprotect)
         {
-            return stringToUnprotect != null
-                       ? Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(stringToUnprotect),
-                                                                         null,
-                                                                         DataProtectionScope.CurrentUser))
-                       : null;
+            try
+            {
+                return stringToUnprotect != null
+                           ? Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(stringToUnprotect),
+                                                                             null,
+                                                                             DataProtectionScope.CurrentUser))
+                           : null;
+            }
+            catch
+            {
+                //in case of migration of config.xml between hosts - passwords cannot and shoud not work
+                return null;
+            }
         }
 
         public static IEnumerable<char> GetAvailableDrives()
         {
-            return Enumerable.Range('D', 22).Select(value => (char) value).Except(
+            return Enumerable.Range('D', 23).Select(value => (char) value).Except(
                 Directory.GetLogicalDrives().Select(drive => drive[0]));
         }
 

@@ -15,6 +15,7 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 using Renci.SshNet;
 using Sshfs.Properties;
+using System.Threading;
 
 #endregion
 
@@ -24,8 +25,13 @@ namespace Sshfs
     {
         private readonly StringBuilder _balloonText = new StringBuilder(255);
         private readonly List<SftpDrive> _drives = new List<SftpDrive>();
+        private readonly List<String> _configVars = new List<String>();
         private readonly Regex _regex = new Regex(@"^New Drive\s\d{1,2}$", RegexOptions.Compiled);
         private readonly Queue<SftpDrive> _suspendedDrives = new Queue<SftpDrive>();
+
+        private VirtualDrive virtualDrive;
+        //private char virtualDriveLetter;
+
         private bool _balloonTipVisible;
 
         private int _lastindex = -1;
@@ -33,21 +39,67 @@ namespace Sshfs
         private bool _suspend;
         private bool _dirty;
 
+        private bool _updateLockvirtualDriveBox = false;
+        private bool _updateLockLetterBox = false;
+        
+
         public MainForm()
         {
             InitializeComponent();
             Opacity = 0;
             driveListView.Columns[0].Width = driveListView.ClientRectangle.Width - 1;
             contextMenu.Renderer = new ContextMenuStripThemedRenderer();
-          
+            proxyType.SelectedIndexChanged += proxyType_SelectedIndexChanged;
+            proxyType.SelectedIndex = 0;
         }
 
+        void proxyType_SelectedIndexChanged(object sender, EventArgs e) {
+          if (proxyType.SelectedIndex == 0) {
+            proxyHostBox.Enabled = false;
+            proxyLoginBox.Enabled = false;
+            proxyPassBox.Enabled = false;
+          }
+          else {
+            proxyHostBox.Enabled = true;
+            proxyLoginBox.Enabled = true;
+            proxyPassBox.Enabled = true;
+          }
+        }
+
+        private void tryMountVFS()
+        {
+            if (virtualDrive.Letter==' ')
+            {
+                return;
+            }
+
+            try
+            {    
+                virtualDrive.Mount();
+            }
+            catch (Exception ex)
+            {
+                if (Visible)
+                {
+                    BeginInvoke(
+                        new MethodInvoker(
+                            () =>
+                            MessageBox.Show(this,
+                                            String.Format("{0} could not connect:\n{1}",
+                                                          "Virtual drive", ex.Message), Text)));
+                }
+                else
+                {
+                    ShowBallon(String.Format("{0} : {1}", "Virtual drive", ex.Message), true);
+                }
+            }
+        }
 
         protected override void OnLoad(EventArgs e)
         {
 
           
-            notifyIcon.Text = Text = String.Format("Sshfs Manager {0}", Assembly.GetEntryAssembly().GetName().Version);
+            notifyIcon.Text = Text = String.Format("Sshfs Manager - WinSshFS Foreveryone - v. {0}", Assembly.GetEntryAssembly().GetName().Version);
             portBox.Minimum = IPEndPoint.MinPort;
             portBox.Maximum = IPEndPoint.MaxPort;
 
@@ -63,18 +115,49 @@ namespace Sshfs
 
             startupMenuItem.Checked = Utilities.IsAppRegistredForStarup();
 
-            // _drives.Presist("config.xml",true);
+            // _drives.Persist("config.xml",true);            
 
-            _drives.Load("config.xml");
+            try {
+                virtualDrive = virtualDrive.Load("vfs.xml");
+            }
+            catch {
+                MessageBox.Show("Unable to load virtual drive info xml file.");
+            }
+            if (virtualDrive == null)
+            {
+                virtualDrive = new VirtualDrive
+                {
+                    Letter = ' '
+                };
+            }
+            virtualDrive.StatusChanged += drive_VFSStatusChanged;
+
+            updateVirtualDriveCombo();
+            this.tryMountVFS();
+            buttonVFSupdate();
+
+
+            try {
+                _drives.Load("config.xml");
+            }
+            catch
+            {
+                MessageBox.Show("Unable to load config file.");
+            }
 
 
             driveListView.BeginUpdate();
             for (int i = 0; i < _drives.Count; i++)
             {
-                driveListView.Items.Add((_drives[i].Tag =
-                                         new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}) as ListViewItem);
+                driveListView.Items.Add(
+                    (
+                        _drives[i].Tag = new ListViewItem(_drives[i].Name, 0) {Tag = _drives[i]}
+                    ) as ListViewItem
+                );
                 _drives[i].StatusChanged += drive_StatusChanged;
                 if (_drives[i].Name.StartsWith("New Drive")) _namecount++;
+
+                virtualDrive.AddSubFS(_drives[i]);
             }
 
 
@@ -83,6 +166,7 @@ namespace Sshfs
                 driveListView.SelectedIndices.Add(0);
             }
 
+            driveListView.Sorting = SortOrder.Ascending;
 
             driveListView.EndUpdate();
 
@@ -95,9 +179,71 @@ namespace Sshfs
 
             SetupPanels();
 
+            
+
 
             SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
             base.OnLoad(e);
+        }
+
+        private void updateVirtualDriveCombo()
+        {
+            if (_updateLockvirtualDriveBox)
+                return;
+            this.virtualDriveCombo.BeginUpdate();
+
+            this.virtualDriveCombo.Items.Clear();
+
+            this.virtualDriveCombo.Items.Add(" Off");
+            this.virtualDriveCombo.Items.AddRange(
+                Utilities.GetAvailableDrives()
+                    .Except(_drives.Select(d => d.Letter))
+                    .Except(new char[] { virtualDrive.Letter })
+                    .Select(l => String.Format("{0} :", l))
+                    .ToArray()
+            );
+            if (virtualDrive.Letter!=' ')
+                this.virtualDriveCombo.Items.Add(String.Format("{0} :", virtualDrive.Letter));
+
+
+            this.virtualDriveCombo.SelectedIndex = this.virtualDriveCombo.FindString(virtualDrive.Letter.ToString());
+
+            this.virtualDriveCombo.EndUpdate();
+        }
+
+        private void updateLetterBoxCombo(SftpDrive drive)
+        {
+            if (_updateLockLetterBox)
+                return;
+            if (drive == null)
+            {
+                if (driveListView.SelectedItems.Count == 0)
+                    return;
+                drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+                if (drive == null)
+                    return;
+            }
+
+            letterBox.BeginUpdate();
+
+            letterBox.Items.Clear();
+
+            letterBox.Items.Add(" None");
+
+            letterBox.Items.AddRange(
+                Utilities.GetAvailableDrives()
+                    .Except(_drives.Select(d => d.Letter))
+                    .Except(new char[] {virtualDrive.Letter})
+                    .Select(l => String.Format("{0} :", l))
+                    .ToArray());
+
+                
+            if (drive.Letter!=' ')
+                letterBox.Items.Add(String.Format("{0} :", drive.Letter));
+                
+            letterBox.SelectedIndex = letterBox.FindString(drive.Letter.ToString());
+
+            letterBox.EndUpdate();
         }
 
 
@@ -134,6 +280,12 @@ namespace Sshfs
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            if (_dirty)
+            {
+                _drives.Persist("config.xml");
+                //virtualDrive.per
+            }
+
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 Visible = false;
@@ -142,10 +294,6 @@ namespace Sshfs
             else
             {
                 Debug.WriteLine("FormCOveride");
-                if (_dirty)
-                {
-                    _drives.Presist("config.xml");
-                }
                 notifyIcon.Visible = false;
             }
             base.OnFormClosing(e);
@@ -170,10 +318,15 @@ namespace Sshfs
                                 Name = String.Format("New Drive {0}", ++_namecount),
                                 Port = 22,
                                 Root = ".",
-                                Letter = letter
+                                Letter = letter,
+                                MountPoint = "",
+                                KeepAliveInterval = 30
                             };
+            
+
             drive.StatusChanged += drive_StatusChanged;
             _drives.Add(drive);
+            this.virtualDrive.AddSubFS(drive);
             var item =
                 (drive.Tag = new ListViewItem(drive.Name, 0) {Tag = drive, Selected = true}) as
                 ListViewItem;
@@ -185,6 +338,7 @@ namespace Sshfs
 
             SetupPanels();
             _dirty = true;
+            
         }
 
         private void drive_StatusChanged(object sender, EventArgs e)
@@ -227,7 +381,7 @@ namespace Sshfs
         private void removeButton_Click(object sender, EventArgs e)
         {
             if (driveListView.SelectedItems.Count != 0 &&
-                MessageBox.Show("Do want to delete this drive ?", Text, MessageBoxButtons.YesNo) ==
+                MessageBox.Show("Do you want to delete this drive?", Text, MessageBoxButtons.YesNo) ==
                 DialogResult.Yes)
             {
                 var drive = driveListView.SelectedItems[0].Tag as SftpDrive;
@@ -235,6 +389,7 @@ namespace Sshfs
 
                 drive.StatusChanged -= drive_StatusChanged;
                 drive.Unmount();
+                virtualDrive.RemoveSubFS(drive);
                 _drives.Remove(drive);
 
 
@@ -268,20 +423,19 @@ namespace Sshfs
                 hostBox.Text = drive.Host;
                 portBox.Value = drive.Port;
                 userBox.Text = drive.Username;
-                authCombo.SelectedIndex = drive.ConnectionType == ConnectionType.Password ? 0 : 1;
-                letterBox.BeginUpdate();
+                switch (drive.ConnectionType)
+                {
+                    case ConnectionType.Pageant: authCombo.SelectedIndex = 2; break;
+                    case ConnectionType.PrivateKey: authCombo.SelectedIndex = 1; break;
+                    default: authCombo.SelectedIndex=0; break;
+                }
 
-                letterBox.Items.Clear();
+                if(drive.KeepAliveInterval <= 0)
+                {
+                    drive.KeepAliveInterval = 1;
+                }
 
-                letterBox.Items.AddRange(
-                    Utilities.GetAvailableDrives().Except(_drives.Select(d => d.Letter)).Select(
-                        l => String.Format("{0} :", l)).ToArray());
-                letterBox.Items.Add(String.Format("{0} :", drive.Letter));
-
-
-                letterBox.SelectedIndex = letterBox.FindString(drive.Letter.ToString());
-
-                letterBox.EndUpdate();
+                updateLetterBoxCombo(drive);
 
                 passwordBox.Text = drive.Password;
                 directoryBox.Text = drive.Root;
@@ -289,9 +443,15 @@ namespace Sshfs
                 passwordBox.Text = drive.Password;
                 privateKeyBox.Text = drive.PrivateKey;
                 passphraseBox.Text = drive.Passphrase;
+                proxyType.SelectedIndex = drive.ProxyType;
+                proxyHostBox.Text = drive.ProxyHost;
+                proxyLoginBox.Text = drive.ProxyUser;
+                proxyPassBox.Text = drive.ProxyPass;
+                keepAliveIntervalBox.Value = drive.KeepAliveInterval;
                 muButton.Text = drive.Status == DriveStatus.Mounted ? "Unmount" : "Mount";
                 muButton.Image = drive.Status == DriveStatus.Mounted ? Resources.unmount : Resources.mount;
                 muButton.Enabled = (drive.Status == DriveStatus.Unmounted || drive.Status == DriveStatus.Mounted);
+                mountPointBox.Text = drive.MountPoint.Replace("/", "\\");//fix unix / to Windows standard
             }
         }
 
@@ -318,7 +478,7 @@ namespace Sshfs
                 nameBox.Focus();
                 return;
             }
-            var drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+            SftpDrive drive = driveListView.SelectedItems[0].Tag as SftpDrive;
 
             if ((_regex.IsMatch(nameBox.Text) || nameBox.Text == String.Format("{0}@'{1}'", drive.Username, drive.Host)) &&
                 !String.IsNullOrEmpty(userBox.Text) && !String.IsNullOrEmpty(hostBox.Text))
@@ -326,18 +486,31 @@ namespace Sshfs
                 nameBox.Text = String.Format("{0}@'{1}'", userBox.Text, hostBox.Text);
             }
 
-
             driveListView.SelectedItems[0].Text = drive.Name = nameBox.Text;
+            driveListView.SelectedItems[0].EnsureVisible();
+            driveListView.Sorting = SortOrder.None;
+            driveListView.Sorting = SortOrder.Ascending;
+
             drive.Host = hostBox.Text;
             drive.Port = (int) portBox.Value;
             drive.Username = userBox.Text;
-            drive.ConnectionType = authCombo.SelectedIndex == 0 ? ConnectionType.Password : ConnectionType.PrivateKey;
+            switch (authCombo.SelectedIndex){
+                case 2: drive.ConnectionType = ConnectionType.Pageant; break;
+                case 1: drive.ConnectionType = ConnectionType.PrivateKey; break;
+                default: drive.ConnectionType = ConnectionType.Password; break;
+            }
             drive.Letter = letterBox.Text[0];
             drive.Root = directoryBox.Text.Trim();
             drive.Automount = mountCheck.Checked;
             drive.Password = passwordBox.Text;
             drive.PrivateKey = privateKeyBox.Text;
             drive.Passphrase = passphraseBox.Text;
+            drive.MountPoint = mountPointBox.Text;
+            drive.ProxyType = proxyType.SelectedIndex;
+            drive.ProxyHost = proxyHostBox.Text;
+            drive.ProxyUser = proxyLoginBox.Text;
+            drive.ProxyPass = proxyPassBox.Text;
+            drive.KeepAliveInterval = (int) keepAliveIntervalBox.Value;
             _dirty = true;
         }
 
@@ -392,6 +565,7 @@ namespace Sshfs
             else
             {
                 drive.Unmount();
+                muButton.Enabled = false;
             }
         }
 
@@ -413,6 +587,11 @@ namespace Sshfs
             foreach (var drive in _drives.Where(d => d.Automount))
             {
                 MountDrive(drive);
+                //no parallel mounting on startup fix:
+                while (drive.Status == DriveStatus.Mounting)
+                {
+                    Thread.Sleep(100);
+                }
             }
             if (_drives.Count != 0 && _drives[0].Automount)
                 muButton.Enabled = false;
@@ -422,7 +601,7 @@ namespace Sshfs
         private void openFileDialog_FileOk(object sender, CancelEventArgs e)
         {
             //don't check larger files
-            if (new FileInfo(openFileDialog.FileName).Length>4*4*1024||!PrivateKeyFile.IsValid(openFileDialog.FileName))
+            if (new FileInfo(openFileDialog.FileName).Length>4*4*1024/*||!PrivateKeyFile.IsValid(openFileDialog.FileName) not supported in current version, solved on open*/)
             {
                 
                 MessageBox.Show(this,
@@ -518,8 +697,7 @@ namespace Sshfs
         {
             SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
             
-          //  _drives.Presist("config.xml");
-           ;
+            _drives.Persist("config.xml");
 
             Parallel.ForEach(_drives.Where(d => d.Status != DriveStatus.Unmounted), d =>
                                                                                         {
@@ -527,6 +705,7 @@ namespace Sshfs
                                                                                                 drive_StatusChanged;
                                                                                             d.Unmount();
                                                                                         });
+            virtualDrive.Unmount();
             base.OnFormClosed(e);
         }
 
@@ -585,5 +764,122 @@ namespace Sshfs
                 muButton.Enabled = false;
             MountDrive(drive);
         }
+
+        private void virtualDriveCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_updateLockvirtualDriveBox)
+                return;
+
+            virtualDrive.Letter = virtualDriveCombo.Text[0];
+            virtualDrive.Persist("vfs.xml");
+
+            _updateLockvirtualDriveBox = true; ;
+
+            updateLetterBoxCombo(null);
+
+            _updateLockvirtualDriveBox = false;
+
+            this.buttonVFSupdate();
+        }
+
+        private void letterBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            _updateLockLetterBox = true;
+
+            SftpDrive drive = driveListView.SelectedItems[0].Tag as SftpDrive;
+            drive.Letter = letterBox.Text[0];
+            
+            this.updateVirtualDriveCombo();
+            _updateLockLetterBox = false;
+        }
+
+        private void buttonVFSMount_Click(object sender, EventArgs e)
+        {
+            if (virtualDrive == null) return;//hmm
+
+            if (virtualDrive.Status == DriveStatus.Unmounted)
+            {
+                this.tryMountVFS();
+                
+            }else if (virtualDrive.Status == DriveStatus.Mounted)
+            {
+                virtualDrive.Unmount();
+            }
+
+            buttonVFSMount.Enabled = false;
+        }
+
+        private void buttonVFSupdate()
+        {
+            this.BeginInvoke(new MethodInvoker(() =>
+            {
+                buttonVFSMount.Text = virtualDrive.Status == DriveStatus.Mounted
+                                        ? "Unmount"
+                                        : "Mount";
+                buttonVFSMount.Image = virtualDrive.Status == DriveStatus.Mounted
+                                            ? Resources.unmount
+                                            : Resources.mount;
+                buttonVFSMount.Enabled = (virtualDrive.Letter != ' ') || virtualDrive.Status == DriveStatus.Mounted;
+            }));
+        }
+
+        private void drive_VFSStatusChanged(object sender, EventArgs e)
+        {
+            var drive = sender as SftpDrive;
+            buttonVFSupdate();
+        }
+
+        private void contextMenu_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            if (mountMenuItem.Selected && (e.KeyCode == Keys.Right || e.KeyCode == Keys.Enter))
+            {
+                mountMenuItem.ShowDropDown();
+            }
+            else
+            {
+                mountMenuItem.HideDropDown();
+            }
+            if (unmountMenuItem.Selected && (e.KeyCode == Keys.Right || e.KeyCode == Keys.Enter))
+            {
+                unmountMenuItem.ShowDropDown();
+            }
+            else
+            {
+                unmountMenuItem.HideDropDown();
+            }
+        }
+
+        private void mountMenuItem_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Right:
+                    contextMenu.AutoClose = false;
+                    mountMenuItem.DropDown.AutoClose = false;
+                    break;
+                default:
+                    contextMenu.AutoClose = true;
+                    mountMenuItem.DropDown.AutoClose = true;
+                    break;
+
+            }
+        }
+
+        private void unmountMenuItem_PreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Right:
+                    contextMenu.AutoClose = false;
+                    unmountMenuItem.DropDown.AutoClose = false;
+                    break;
+                default:
+                    contextMenu.AutoClose = true;
+                    unmountMenuItem.DropDown.AutoClose = true;
+                    break;
+
+            }
+        }
+
     }
 }
